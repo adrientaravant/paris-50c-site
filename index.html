@@ -1,0 +1,1682 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><script>document.documentElement.classList.add("js")</script><title>Paris à 50°C — la fiction de crise</title><meta name="description" content="Fiction climatique française : un dôme de chaleur à 50°C sur Paris en juin 2026. Une chronique au jour le jour et sept vignettes d'intériorité."><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..600;1,9..144,300..600&family=Spectral:ital,wght@0,300;0,400;0,500;1,400;1,500&family=IBM+Plex+Mono:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet"><style>
+/* ====================================================================
+   PARIS À 50°C — la fiction de crise
+   « Le Dôme et la Faille — descendre dans le degré »
+   Système de design complet. Tout en français.
+   ==================================================================== */
+
+/* ---- 1. PALETTE & VARIABLES ---- */
+:root {
+  /* Palette nommée */
+  --bleu-etain:        #A9C2D6; /* dôme à froid (≤40°C) */
+  --plomb-archive:     #1C2230; /* chrome de page, avant-canicule */
+  --papier-chaux:      #F1ECE2; /* surface de lecture, jamais chauffée */
+  --encre-brulee:      #16110D; /* texte courant */
+  --bleu-meteo:        #1F3A5F; /* voix de la chronique, repères */
+  --or-bitume:         #D99A3A; /* palier médian 42-45°C */
+  --vermillon:         #C4341E; /* palier chaud + VOIX ITALIQUE */
+  --blanc-incandescent:#FBFAF4; /* palier 50°C */
+  --bitume-faille:     #0B0D14; /* sous-sol, failles, fin */
+  --vert-vincennes:    #3D5A3A; /* unique respiration végétale */
+
+  /* --temp : 38 → 50, piloté par JS au scroll. */
+  --temp: 38;
+  /* Couleur-ciel interpolée (mise à jour par JS), valeur de repli ci-dessous */
+  --sky-color: var(--bleu-etain);
+  --sky-ink: var(--encre-brulee);     /* encre lisible sur le ciel courant */
+  --mercury-fill: 0%;                  /* hauteur de remplissage du filet */
+  --mercury-hue: var(--bleu-etain);
+
+  /* Typographie */
+  --serif-display: 'Fraunces', Georgia, serif;
+  --serif-body:    'Spectral', Georgia, serif;
+  --mono:          'IBM Plex Mono', ui-monospace, 'SFMono-Regular', monospace;
+
+  /* Échelle */
+  --fs-mono-meta: 0.78rem;
+  --fs-body: 1.1875rem;
+  --fs-epigraph: clamp(1.3rem, 2.4vw, 1.7rem);
+  --measure: 62ch;
+
+  /* Rythme vertical */
+  --gutter-w: clamp(48px, 6vw, 80px);
+  --sky-h: clamp(48px, 6.5vh, 76px);   /* bandeau-ciel fin : place à la lecture */
+  --space-day: clamp(2.6rem, 5vw, 5rem);
+}
+
+/* ---- 2. RESET & BASE ---- */
+*,*::before,*::after { box-sizing: border-box; }
+html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+
+body {
+  margin: 0;
+  background: var(--plomb-archive);
+  color: var(--encre-brulee);
+  font-family: var(--serif-body);
+  font-size: var(--fs-body);
+  line-height: 1.66;
+  font-weight: 400;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  /* `clip` empêche le débordement horizontal SANS forcer overflow-y:auto
+     (ce que ferait `hidden`), qui bloquait le défilement vertical de la page. */
+  overflow-x: clip;
+}
+
+img { max-width: 100%; display: block; }
+
+::selection { background: var(--or-bitume); color: var(--bitume-faille); }
+
+a { color: inherit; }
+
+.mono { font-family: var(--mono); }
+
+/* Accessibilité : focus clavier visible partout */
+a:focus-visible, button:focus-visible {
+  outline: 3px solid var(--or-bitume);
+  outline-offset: 3px;
+  border-radius: 2px;
+}
+
+.skip-link {
+  position: absolute; left: 1rem; top: -4rem;
+  background: var(--blanc-incandescent); color: var(--encre-brulee);
+  padding: .6rem 1rem; z-index: 200; font-family: var(--mono);
+  font-size: .8rem; border-radius: 3px; transition: top .2s;
+}
+.skip-link:focus { top: 1rem; }
+
+.visually-hidden {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+
+/* ====================================================================
+   3. COUVERTURE
+   ==================================================================== */
+.cover {
+  position: relative;
+  min-height: 100vh;
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  padding: clamp(1.5rem, 5vw, 4rem);
+  overflow: hidden;
+  isolation: isolate;
+}
+.cover__sky {
+  position: absolute; inset: 0; z-index: -2;
+  background:
+    radial-gradient(120% 80% at 50% -10%, #C7DAE8 0%, var(--bleu-etain) 45%, #8FAAC0 100%);
+}
+/* léger grain thermique de couverture */
+.cover__sky::after {
+  content: ""; position: absolute; inset: 0;
+  background-image: radial-gradient(circle at 30% 20%, rgba(255,255,255,.35), transparent 40%);
+  mix-blend-mode: overlay; opacity: .6;
+}
+/* Scopé sous .cover pour battre la règle .plate (définie plus bas, même
+   spécificité sinon) qui rétablissait position:relative + aspect-ratio 3/2 et
+   réduisait la couverture à un panneau au lieu d'un plein cadre. */
+.cover .plate--cover {
+  position: absolute; inset: 0; z-index: -1; margin: 0;
+  display: block; aspect-ratio: auto;
+}
+.cover .plate--cover .plate__frame {
+  position: absolute; inset: 0; border: none; background: transparent;
+  aspect-ratio: auto; clip-path: none;
+  /* la couverture est plein cadre : on annule les plafonds des planches */
+  max-width: none; max-height: none; margin: 0;
+}
+.cover .plate--cover img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;
+  mix-blend-mode: normal; opacity: 1; }
+/* pas de double-multiply sur la couverture (sinon l'image pâle vire au navy
+   et le titre sombre devient illisible) */
+.cover .plate--cover .plate__frame::before { content: none; }
+/* voile : bandeau clair franc en haut (lisibilité de l'œil de date),
+   sombre tout en bas (lisibilité du repère « défiler » clair) */
+.cover .plate--cover::after {
+  content: ""; position: absolute; inset: 0; z-index: 1;
+  background: linear-gradient(to bottom,
+    rgba(206,223,235,.82) 0%, rgba(206,223,235,.34) 12%, rgba(206,223,235,0) 28%,
+    rgba(11,13,20,0) 72%, rgba(11,13,20,.45) 100%);
+}
+
+/* ACTE I — seul l'œil de date, en haut, sur le calme du ciel d'étain */
+.cover__eyebrow {
+  font-family: var(--mono);
+  font-weight: 500;
+  font-size: clamp(.76rem, 1.6vw, .98rem);
+  letter-spacing: .2em;
+  text-transform: uppercase;
+  color: rgba(241,236,226,.86);          /* clair : lisible sur le voile bleu nuit */
+  margin: 0;
+  position: relative; z-index: 2;
+  text-shadow: 0 1px 14px rgba(11,13,20,.6);
+}
+
+/* Voile « bleu de la 2e slide » : monte quand le texte apparaît pour le contraste,
+   reste translucide → on devine Paris derrière. (Visible par défaut : repli sans JS.) */
+.cover__veil {
+  position: absolute; inset: 0; z-index: 1; pointer-events: none;
+  background: var(--plomb-archive);
+  opacity: .58;
+  transition: opacity 1.5s ease;
+}
+
+/* Anti-FOUC : si le JS est présent, la couverture part masquée dès le 1er rendu,
+   puis initCover() la révèle. Sans JS / en motion réduite : tout reste visible. */
+.js .cover__eyebrow,
+.js .cover__title,
+.js .cover__sub-lead,
+.js .cover__sub-ghost,
+.js .cover__veil { opacity: 0; }
+@media (prefers-reduced-motion: reduce) {
+  .js .cover__eyebrow,
+  .js .cover__title,
+  .js .cover__sub-lead,
+  .js .cover__sub-ghost { opacity: 1; }
+  .js .cover__veil { opacity: .58; }
+}
+
+/* ACTE I (suite) — le titre s'écrit à la machine, le chapô suit, sur l'image */
+.cover__centre {
+  position: relative; z-index: 2;
+  margin: auto;                 /* centré verticalement entre l'œil de date et « défiler » */
+  max-width: 44rem; width: 100%;
+  text-align: center;
+  padding-inline: 1rem;
+}
+/* (Le voile bleu nuit assure désormais le contraste — plus besoin de brume locale.) */
+/* Titre : « le bleu qu'on avait », léger ; apparaît en fondu (JS) */
+.cover__title {
+  font-family: var(--serif-display); font-optical-sizing: auto;
+  font-weight: 300; letter-spacing: -.01em; line-height: .9;
+  font-size: clamp(3rem, 11vw, 8rem);
+  color: var(--bleu-etain);
+  margin: 0; text-wrap: balance;
+  text-shadow: 0 2px 30px rgba(11,13,20,.6);
+}
+/* Sous-titre : épigraphe littéraire, en italique, posée sur l'image (aucun cadre).
+   Écrite lettre à lettre, comme une phrase qu'on couche sur la page. */
+.cover__sub { margin: 1.5rem auto 0; max-width: 40rem; }
+/* La prémisse, frappée fort ; « juin 2026 » surligné de rouge (réf. à l'avertissement). */
+.cover__sub-lead {
+  margin: 0;
+  font-family: "Helvetica Neue", Arial, system-ui, sans-serif;
+  font-weight: 700; letter-spacing: -.01em;
+  font-size: clamp(1.15rem, 2.8vw, 1.95rem); line-height: 1.28;
+  color: var(--blanc-incandescent);
+  text-shadow: 0 1px 16px rgba(11,13,20,.6);
+}
+.cover__hot {
+  background: var(--vermillon); color: var(--blanc-incandescent);
+  padding: 0 .22em; border-radius: 2px;
+  -webkit-box-decoration-break: clone; box-decoration-break: clone;
+}
+/* L'avertissement, à la machine à écrire (mono), comme un carton de cinéma. */
+.cover__sub-note {
+  position: relative; margin: 1.2rem 0 0;
+  font-family: var(--mono); font-weight: 400;
+  font-size: clamp(.82rem, 1.6vw, 1.05rem); letter-spacing: .04em; line-height: 1.5;
+  color: rgba(241,236,226,.9);
+  text-shadow: 0 1px 12px rgba(11,13,20,.6);
+}
+/* « fantôme » : réserve la hauteur exacte → le titre ne saute jamais. */
+.cover__sub-ghost { display: block; }
+.cover__sub-ink { position: absolute; inset: 0; }
+.cover__cue {
+  position: absolute; left: 50%; bottom: clamp(1.4rem, 4vh, 2.6rem);
+  transform: translateX(-50%);
+  z-index: 2;
+  display: inline-flex; flex-direction: column; align-items: center; gap: .45rem;
+  font-family: var(--mono); font-size: .68rem; letter-spacing: .26em;
+  text-transform: uppercase; text-decoration: none;
+  color: var(--papier-chaux);
+  text-shadow: 0 1px 8px rgba(11,13,20,.5);
+}
+.cover__cue-arrow { font-size: 1.1rem; animation: cueFloat 2.6s ease-in-out infinite; }
+@keyframes cueFloat {
+  0%, 100% { transform: translateY(0); opacity: .55; }
+  50%      { transform: translateY(5px); opacity: 1; }
+}
+
+/* ====================================================================
+   3bis. OUVERTURE — le vertige temporel, révélé au défilement
+   ==================================================================== */
+.overture {
+  position: relative;
+  background: var(--plomb-archive);
+  color: var(--papier-chaux);
+}
+/* Chaque acte = une diapositive : on aimante le défilement à l'intérieur de
+   l'ouverture seulement (JS pose .snap), puis on rend la main au défilement
+   normal pour le livre. */
+html.snap { scroll-snap-type: y mandatory; }
+.cover { scroll-snap-align: start; scroll-snap-stop: always; }
+.overture__act {
+  min-height: 100vh; min-height: 100svh;
+  scroll-snap-align: start; scroll-snap-stop: always;
+  display: flex; flex-direction: column; justify-content: center; align-items: center;
+  text-align: center;
+  padding: clamp(2.4rem, 7vh, 6rem) clamp(1.4rem, 5vw, 3rem);
+  max-width: 60rem; margin-inline: auto;
+  /* révélation : un seul mouvement, sobre et lisible */
+  opacity: 0; transform: translateY(26px);
+  transition: opacity .9s ease, transform 1s cubic-bezier(.16,.84,.44,1);
+}
+.overture__act.is-in { opacity: 1; transform: none; }
+
+/* ACTE II — le titre frappe */
+.overture__title {
+  font-family: var(--serif-display); font-optical-sizing: auto;
+  font-weight: 300; font-size: clamp(3.4rem, 12vw, 9rem);
+  line-height: .9; letter-spacing: -0.01em; margin: 0;
+  color: var(--bleu-etain); text-wrap: balance;
+}
+.overture__subtitle {
+  font-family: var(--serif-display); font-style: italic; font-weight: 300;
+  font-size: clamp(1.4rem, 4vw, 2.4rem); margin: .6rem 0 0;
+  color: rgba(169,194,214,.82);
+}
+.overture__stamp {
+  margin: 1.9rem 0 0; font-size: .74rem; letter-spacing: .2em;
+  text-transform: uppercase; color: rgba(169,194,214,.55);
+}
+
+/* ACTE III — le vertige (très lisible : grand, clair, contrasté) */
+.act-time { background: radial-gradient(75% 55% at 50% 58%, rgba(196,52,30,.07), transparent 72%); }
+.overture__eyebrow {
+  display: inline-flex; gap: .55em; align-items: baseline;
+  font-size: clamp(.74rem, 1.6vw, .9rem); letter-spacing: .3em;
+  color: var(--vermillon); margin: 0 0 clamp(1.8rem, 5vh, 3rem);
+}
+.overture__lead {
+  font-family: var(--serif-body); font-weight: 400;
+  font-size: clamp(1.2rem, 2.6vw, 1.8rem); line-height: 1.48;
+  color: var(--papier-chaux); max-width: 23ch; margin: 0 auto;
+  text-wrap: balance;
+}
+.overture__today {
+  font-size: clamp(.72rem, 1.5vw, .84rem); letter-spacing: .26em;
+  text-transform: uppercase; color: rgba(169,194,214,.62);
+  margin: clamp(2rem, 5.5vh, 3.4rem) 0 .6rem;
+}
+.overture__now {
+  font-family: var(--serif-display); font-optical-sizing: auto;
+  font-weight: 400; font-variant-numeric: tabular-nums;
+  font-size: clamp(2.5rem, 7.6vw, 5rem); line-height: 1;
+  letter-spacing: -0.01em; margin: 0; color: var(--blanc-incandescent);
+}
+.overture__kicker {
+  font-family: var(--serif-display); font-style: italic; font-weight: 300;
+  font-size: clamp(1rem, 2vw, 1.32rem); line-height: 1.45;
+  color: rgba(214,154,128,.95); max-width: 44ch;
+  margin: clamp(2rem, 5.5vh, 3.4rem) auto 0; text-wrap: balance;
+}
+
+/* ACTE IV — les auteurs, l'entrée */
+.overture__authors {
+  font-family: var(--serif-display); font-weight: 300;
+  font-size: clamp(1.4rem, 3.6vw, 2.2rem); color: var(--bleu-etain); margin: 0;
+}
+.overture__dir {
+  font-size: clamp(.8rem, 1.6vw, .9rem); letter-spacing: .08em;
+  color: rgba(169,194,214,.72); margin: .7rem 0 0;
+}
+.overture__dir-link {
+  color: var(--bleu-etain); text-decoration: none;
+  border-bottom: 1px solid rgba(169,194,214,.35);
+  padding-bottom: 1px; transition: border-color .3s ease, color .3s ease;
+}
+.overture__dir-link:hover { color: var(--blanc-incandescent); border-color: var(--bleu-etain); }
+.overture__method {
+  font-family: var(--serif-body); font-size: clamp(1rem, 2.1vw, 1.22rem);
+  line-height: 1.55; color: rgba(241,236,226,.72); max-width: 36ch;
+  margin: clamp(2rem, 5.5vh, 3.2rem) auto 0; text-wrap: balance;
+}
+.overture__enter {
+  display: inline-flex; align-items: center; gap: .6rem;
+  margin-top: clamp(2.6rem, 7vh, 4.2rem);
+  font-family: var(--mono); font-size: .86rem; letter-spacing: .14em;
+  text-transform: uppercase; text-decoration: none;
+  color: var(--bleu-etain);
+  border: 1.5px solid rgba(169,194,214,.5);
+  padding: .9rem 1.5rem; border-radius: 2px;
+  transition: background .3s, gap .3s, border-color .3s;
+}
+.overture__enter:hover { background: rgba(169,194,214,.1); gap: 1rem; border-color: var(--bleu-etain); }
+.cover__enter .arrow { transition: transform .3s; }
+.cover__enter:hover .arrow { transform: translateY(3px); }
+
+/* ====================================================================
+   4. SOMMAIRE DES JOURS
+   ==================================================================== */
+.sommaire {
+  background: var(--plomb-archive);
+  color: var(--papier-chaux);
+  padding: clamp(3rem, 8vw, 6rem) clamp(1.5rem, 5vw, 4rem);
+  border-top: 1px solid rgba(169,194,214,.12);
+}
+.sommaire__title {
+  font-family: var(--serif-display);
+  font-weight: 300;
+  font-size: clamp(1.6rem, 4vw, 2.6rem);
+  margin: 0 0 .4rem;
+  color: var(--bleu-etain);
+}
+.sommaire__hint {
+  font-family: var(--mono);
+  font-size: var(--fs-mono-meta);
+  letter-spacing: .04em;
+  color: rgba(241,236,226,.55);
+  margin: 0 0 2.5rem;
+  max-width: 52ch;
+  line-height: 1.6;
+}
+.sommaire__list {
+  list-style: none; margin: 0; padding: 0;
+  position: relative;
+  max-width: 760px;
+}
+/* la courbe-mercure miniature qui longe la colonne du sommaire */
+.sommaire__list::before {
+  content: ""; position: absolute;
+  left: 7px; top: .6em; bottom: .6em; width: 2px;
+  background: linear-gradient(to bottom,
+    var(--bleu-etain) 0%, var(--or-bitume) 45%, var(--vermillon) 70%,
+    var(--blanc-incandescent) 80%, var(--bitume-faille) 100%);
+  opacity: .55;
+}
+.sommaire__day { position: relative; }
+.sommaire__link {
+  display: grid;
+  grid-template-columns: 14px minmax(13ch, max-content) 4ch 1fr auto;
+  gap: .95rem;
+  align-items: center;
+  padding: .5rem 0 .5rem .2rem;
+  text-decoration: none;
+  color: var(--papier-chaux);
+  border-bottom: 1px solid rgba(169,194,214,.08);
+  transition: background .25s, padding-left .25s;
+}
+.sommaire__link:hover { background: rgba(169,194,214,.06); padding-left: .6rem; }
+/* Pastille : pleine = jour de surface (chronique), couleur = chaleur du jour.
+   Anneau creux = vignette d'intériorité (sous terre, hors de l'échelle). */
+.sommaire__dot {
+  width: 10px; height: 10px; border-radius: 50%;
+  background: var(--dot, var(--bleu-etain));
+  box-shadow: 0 0 0 3px var(--plomb-archive);
+}
+.sommaire__date { font-family: var(--mono); font-size: .82rem; letter-spacing: .03em; color: var(--bleu-etain); white-space: nowrap; }
+.sommaire__temp { font-family: var(--mono); font-size: .8rem; font-weight: 500; color: var(--or-bitume); text-align: right; }
+.sommaire__label { font-family: var(--serif-body); font-style: italic; font-size: .98rem; color: var(--bleu-etain); }
+/* l'intériorité : pastille en anneau (creux), titre en italique étain */
+.sommaire__day[data-kind="interior"] .sommaire__dot,
+.sommaire__day[data-kind="stub"] .sommaire__dot {
+  background: var(--bitume-faille);
+  border: 2px solid var(--bleu-etain);
+}
+.sommaire__day[data-kind="stub"] .sommaire__label { color: rgba(241,236,226,.5); }
+/* miniature d'illustration : petit encart qui attire l'œil sur les jours illustrés */
+.sommaire__thumb { width: 46px; height: 32px; }
+.sommaire__thumb img {
+  width: 100%; height: 100%; object-fit: cover; display: block;
+  border-radius: 2px; filter: saturate(.92) contrast(1.02);
+  box-shadow: 0 0 0 1px rgba(169,194,214,.18);
+}
+.sommaire__link:hover .sommaire__thumb img { filter: none; box-shadow: 0 0 0 1px rgba(169,194,214,.4); }
+
+/* ====================================================================
+   5. CIEL-PLAFOND STICKY (.sky)
+   ==================================================================== */
+.sky {
+  position: sticky; top: 0; z-index: 40;
+  height: var(--sky-h);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 clamp(1.1rem, 4vw, 2.6rem);
+  background: var(--sky-color);
+  color: var(--sky-ink);
+  overflow: hidden;
+  isolation: isolate;
+  transition: background 1.2s ease, color 1.2s ease;
+  border-bottom: 1px solid rgba(0,0,0,.08);
+}
+.sky__date {
+  font-family: var(--mono);
+  font-size: clamp(.68rem, 1.2vw, .82rem);
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  max-width: 70%;
+  line-height: 1.3;
+}
+/* qualifier : teinté de l'encre-ciel calculée (AA), plus seulement transparent */
+.sky__qualifier { opacity: .85; }
+/* Le degré : repère discret aligné à droite, plus le chiffre géant qui mangeait
+   le haut de page. Toujours dans la teinte-encre du ciel courant (lisible AA). */
+.sky__temp {
+  font-family: var(--serif-display);
+  font-optical-sizing: auto;
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+  font-size: clamp(1.25rem, 2.6vw, 1.9rem);
+  line-height: 1;
+  letter-spacing: -0.01em;
+}
+/* °C bien lisible : assez grand pour que le « C » se voie, pas un simple petit rond */
+.sky__temp .unit { font-size: .62em; vertical-align: baseline; margin-left: .06em; letter-spacing: .01em; }
+.sky__temp:empty { display: none; }
+.sky__haze {
+  position: absolute; inset: 0; z-index: -1; pointer-events: none;
+  /* Opacité dérivée EN CONTINU de --temp (source unique) : la haze glisse
+     avec la teinte du ciel au lieu de s'allumer par paliers. 0 à 45°C → 1 à 50°C. */
+  opacity: clamp(0, calc((var(--temp) - 45) / 5), 1);
+  background:
+    repeating-linear-gradient(0deg, transparent 0 6px, rgba(255,255,255,.06) 6px 7px);
+  mix-blend-mode: overlay;
+  transition: opacity 1.2s ease;
+}
+/* data-heat ne pilote plus que la VITESSE d'animation (le tremblé d'air),
+   pas l'intensité — celle-ci suit --temp ci-dessus, sans divergence. */
+body[data-heat="warm"] .sky__haze { animation: hazeShift 8s ease-in-out infinite; }
+body[data-heat="hot"]  .sky__haze { animation: hazeShift 6s ease-in-out infinite; }
+body[data-heat="peak"] .sky__haze { animation: hazeShift 5s ease-in-out infinite; }
+@keyframes hazeShift {
+  0%,100% { transform: translateY(0) skewX(0deg); }
+  50%     { transform: translateY(-3px) skewX(.4deg); }
+}
+
+/* Quand on est sous terre / dans une faille, le ciel se vide vers le bitume */
+body[data-faille="1"] .sky {
+  background: var(--bitume-faille);
+  color: var(--bleu-etain);
+  transition: background 2s ease, color 2s ease;
+}
+body[data-faille="1"] .sky__haze { opacity: 0 !important; animation: none; }
+
+/* À l'ébauche, le ciel se vide tout à fait */
+body[data-stub="1"] .sky { background: var(--bitume-faille); color: rgba(169,194,214,.4); }
+body[data-stub="1"] .sky__temp { opacity: .3; }
+
+/* ====================================================================
+   6. CORPS DU LIVRE
+   ==================================================================== */
+.book {
+  position: relative;
+  background: var(--plomb-archive);
+  padding-bottom: clamp(4rem, 10vw, 8rem);
+}
+
+/* La gouttière + filet-mercure : n'apparaît qu'en lecture (pas sur la
+   couverture ni le sommaire, qui a déjà sa propre courbe). */
+.gutter {
+  position: fixed;
+  left: 0; top: 0; bottom: 0;
+  width: var(--gutter-w);
+  z-index: 30;
+  pointer-events: none;
+  display: flex;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity .45s ease;
+}
+body.reading .gutter { opacity: 1; }
+.mercury {
+  position: absolute;
+  top: calc(var(--sky-h) + 2rem);
+  bottom: 2rem;
+  width: 4px;
+  background: rgba(169,194,214,.12);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.mercury__fill {
+  position: absolute; left: 0; right: 0; bottom: 0;
+  height: var(--mercury-fill);
+  background: linear-gradient(to top,
+    var(--bleu-etain) 0%, var(--or-bitume) 50%, var(--vermillon) 78%, var(--blanc-incandescent) 100%);
+  transition: height .9s cubic-bezier(.16,.84,.44,1), background .9s ease;
+}
+/* sous terre : le mercure refroidit et se fige */
+body[data-faille="1"] .mercury__fill { filter: saturate(.4) brightness(.7); }
+
+/* ---- THERMOMÈTRE-NAVIGATION : les jours cliquables le long du filet ---- */
+.rail {
+  position: absolute;
+  top: calc(var(--sky-h) + 2rem);
+  bottom: 2rem; left: 0; right: 0;
+  pointer-events: none;
+}
+.rail__day {
+  position: absolute;
+  top: calc(var(--p) * 100%);
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: var(--gutter-w); height: 22px;
+  display: flex; align-items: center; justify-content: center;
+  pointer-events: none; text-decoration: none;
+}
+body.reading .rail__day { pointer-events: auto; }
+.rail__dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--dot, var(--bleu-etain));
+  box-shadow: 0 0 0 3px var(--plomb-archive);
+  transition: transform .2s ease, box-shadow .2s ease;
+}
+.rail__day[data-kind="interior"] .rail__dot,
+.rail__day[data-kind="stub"] .rail__dot {
+  background: var(--bitume-faille);
+  border: 1.5px solid var(--bleu-etain);
+}
+.rail__day:hover .rail__dot,
+.rail__day:focus-visible .rail__dot { transform: scale(1.55); }
+.rail__day.is-current .rail__dot {
+  transform: scale(1.7);
+  box-shadow: 0 0 0 3px var(--plomb-archive), 0 0 11px var(--dot, var(--bleu-etain));
+}
+/* étiquette au survol : date (+ degré, + titre de vignette) */
+.rail__tip {
+  position: absolute; left: calc(var(--gutter-w) - 4px);
+  white-space: nowrap;
+  display: inline-flex; align-items: baseline; gap: .55rem;
+  background: rgba(11,13,20,.96); color: var(--bleu-etain);
+  font-size: .72rem; letter-spacing: .02em;
+  padding: .32rem .6rem; border-radius: 4px;
+  border: 1px solid rgba(169,194,214,.22);
+  box-shadow: 0 8px 24px rgba(0,0,0,.45);
+  opacity: 0; transform: translateX(-5px);
+  transition: opacity .15s ease, transform .15s ease;
+}
+.rail__tip-t { color: var(--or-bitume); }
+.rail__tip i { color: rgba(214,154,128,.95); font-style: italic; }
+.rail__day:hover .rail__tip,
+.rail__day:focus-visible .rail__tip { opacity: 1; transform: translateX(0); }
+/* le panneau « Les jours » devient la nav de secours (mobile) ; sur desktop,
+   c'est le thermomètre qui navigue. */
+.jump-toggle { display: none; }
+
+/* Colonne de lecture
+   --frame : largeur HABITÉE de la page (le cadre Papier-de-chaux respire).
+   --measure : MESURE de lecture (prose centrée à l'intérieur du cadre).
+   Décorréler les deux évite le ruban étriqué flottant sur écran large. */
+:root { --frame: 82ch; }
+.book__column {
+  max-width: var(--frame);
+  margin-inline: auto;
+  padding-inline: clamp(1.2rem, 4vw, 2rem);
+  padding-left: max(var(--gutter-w), clamp(1.2rem,4vw,2rem));
+}
+
+/* ---- ENTRÉE GÉNÉRIQUE ---- */
+.entry {
+  position: relative;
+  margin: 0 auto;
+  padding-block: var(--space-day);
+  scroll-margin-top: calc(var(--sky-h) + 1rem);
+}
+
+.entry__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: .6rem 1.4rem;
+  margin-bottom: 1.8rem;
+  max-width: var(--measure);
+}
+.entry__date-fiction {
+  font-family: var(--mono);
+  font-weight: 500;
+  font-size: .95rem;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--bleu-meteo);
+}
+.entry__date-pub {
+  font-family: var(--mono);
+  font-size: .72rem;
+  letter-spacing: .04em;
+  color: var(--bleu-meteo);
+  opacity: .65;
+}
+.entry__temp-inline {
+  font-family: var(--mono);
+  font-weight: 500;
+  font-size: .85rem;
+  letter-spacing: .04em;
+  color: var(--vermillon);
+  margin-left: auto;
+}
+
+/* ---- BLOCS DE TEXTE (surface Papier de chaux) ---- */
+.entry__body { color: var(--encre-brulee); }
+.block {
+  margin: 0 0 1.4em;
+  hyphens: auto;
+  -webkit-hyphens: auto;
+  text-wrap: pretty;
+}
+.block:last-child { margin-bottom: 0; }
+
+/* ---- CHRONIQUE ----
+   Le cadre Papier-de-chaux occupe toute la largeur habitée (--frame) ;
+   la prose, elle, garde la mesure de lecture (--measure) et se centre dans
+   le cadre via un padding latéral généreux. Plus de ruban étriqué. */
+.entry--chronicle {
+  background: var(--papier-chaux);
+  border-radius: 3px;
+  padding-block: var(--space-day);
+  padding-inline: clamp(1.4rem, 5vw, 4rem);
+  box-shadow: 0 1px 0 rgba(28,34,48,.04);
+}
+.entry--chronicle .entry__head,
+.entry--chronicle .entry__body {
+  max-width: var(--measure);
+  margin-inline: auto;
+}
+/* handles, hashtags et horodatages : tampon bleu météo en mono */
+.entry--chronicle .block { }
+.handle, .hashtag {
+  font-family: var(--mono);
+  font-size: .9em;
+  color: var(--bleu-meteo);
+  font-weight: 500;
+  letter-spacing: .01em;
+  white-space: nowrap;
+}
+.timestamp {
+  font-family: var(--mono);
+  font-size: .82em;
+  color: var(--bleu-meteo);
+  letter-spacing: .02em;
+  opacity: .9;
+}
+.block--source {
+  font-family: var(--mono);
+  font-size: .82rem;
+  color: var(--bleu-meteo);
+  letter-spacing: .02em;
+}
+
+.entry--chronicle .entry__head { position: relative; }
+
+/* ====================================================================
+   7. INTÉRIORITÉ — LA FAILLE
+   ==================================================================== */
+.entry--interior {
+  background: var(--bitume-faille);
+  color: var(--bleu-etain);
+  /* étendue pleine largeur, en rupture */
+  width: 100vw;
+  position: relative;
+  left: 50%; right: 50%;
+  margin-left: -50vw; margin-right: -50vw;
+  padding-block: clamp(5rem, 11vw, 10rem);
+}
+.entry--interior .entry__inner {
+  max-width: 56ch;
+  margin-inline: auto;
+  padding-inline: clamp(1.4rem, 6vw, 3rem);
+}
+.entry--interior .entry__body {
+  color: #D8DEE6;
+  font-size: 1.22rem;
+  line-height: 1.7;
+}
+.entry--interior .entry__head { justify-content: center; text-align: center; flex-direction: column; gap:.5rem; align-items:center; }
+.entry__title {
+  font-family: var(--serif-display);
+  font-optical-sizing: auto;
+  font-style: italic;
+  font-weight: 300;
+  font-size: clamp(2rem, 5vw, 3rem);
+  line-height: 1.1;
+  color: var(--bleu-etain);
+  margin: 0;
+  text-wrap: balance;
+}
+.entry--interior .entry__date-fiction { color: rgba(169,194,214,.7); }
+.entry--interior .entry__date-pub { color: rgba(169,194,214,.45); }
+.entry--interior .entry__kind-tag { color: rgba(169,194,214,.4); text-align: center; }
+
+/* au pic, l'intériorité resserre son interligne (la page suffoque) */
+body[data-heat="peak"] .entry--interior .entry__body { line-height: 1.5; }
+
+/* ---- VOIX INTRUSIVE (pensées, irruptions) ----
+   Sobre et raffinée : italique dans une terre désaturée, sans liseré, sans
+   chevron, sans encadré. Distincte de la narration par la seule chaleur de
+   sa teinte, l'italique, et l'air qu'on lui laisse. */
+.block--intrusion {
+  font-family: var(--serif-display);
+  font-optical-sizing: auto;
+  font-style: italic;
+  font-weight: 400;
+  color: #C98A78;
+  line-height: 1.52;
+  margin: 1.7em 0;
+  /* TAILLE UNIQUE pour toutes les voix intermédiaires (cohérence demandée) */
+  font-size: clamp(1.12rem, 1.6vw, 1.4rem);
+}
+.entry--interior .block--intrusion { color: #D69A80; }
+
+/* RYTHMES (data-rhythm) — variations de souffle et de teinte SANS changer la taille */
+.block--intrusion[data-rhythm="falling"] {
+  margin: .55em 0;
+  line-height: 1.2;
+}
+.block--intrusion[data-rhythm="whisper"] {
+  color: #B68A7E;
+}
+.entry--interior .block--intrusion[data-rhythm="whisper"] { color: #BD9788; }
+.block--intrusion[data-rhythm="slab"] {
+  line-height: 1.56;
+}
+.block--intrusion[data-rhythm="crowd"].is-rising { color: #E0A487; }
+
+/* ---- ÉPIGRAPHE DE CODA (Robbe-Grillet) : sommet typographique ---- */
+.block--epigraph {
+  margin: 0 auto 2.4em;
+  padding: 0;
+  text-align: center;
+  max-width: 52ch;
+}
+/* horodatage de tête, discret, détaché au-dessus de la citation */
+.block--epigraph__stamp {
+  display: block;
+  font-family: var(--mono);
+  font-size: .72rem;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: rgba(169,194,214,.55);
+  margin-bottom: 1.4rem;
+}
+/* corps de la citation : Fraunces italique centrée, détachée par cadratins */
+.block--epigraph__quote {
+  position: relative;
+  font-family: var(--serif-display);
+  font-optical-sizing: auto;
+  font-style: italic;
+  font-weight: 300;
+  font-size: var(--fs-epigraph);
+  line-height: 1.5;
+  color: var(--bleu-etain);
+  margin: 0;
+  padding: 1.4rem 0 0;
+  text-wrap: balance;
+}
+/* cadratins (em dashes) qui encadrent la citation, en filets fins */
+.block--epigraph__quote::before,
+.block--epigraph__quote::after {
+  content: "";
+  display: block;
+  width: 3ch;
+  height: 1px;
+  margin: 0 auto;
+  background: rgba(169,194,214,.4);
+}
+.block--epigraph__quote::before { margin-bottom: 1.6rem; }
+.block--epigraph__quote::after  { margin-top: 1.6rem; }
+
+/* ====================================================================
+   8. PLANCHES D'ILLUSTRATION (placeholders élégants)
+   ==================================================================== */
+.plate {
+  width: 100vw;
+  position: relative;
+  left: 50%; right: 50%;
+  margin-left: -50vw; margin-right: -50vw;
+  margin-block: clamp(3rem, 7vw, 6rem);
+  background: var(--plomb-archive);
+}
+.plate__frame {
+  position: relative;
+  margin-inline: auto;
+  max-width: 1200px;
+  /* plafond de hauteur : les planches portrait (3:4) ne doivent pas dominer ;
+     l'aspect-ratio réduit alors la largeur, et la planche reste centrée. */
+  max-height: min(76vh, 700px);
+  aspect-ratio: var(--aspect, 16 / 9);
+  background:
+    linear-gradient(135deg, rgba(31,58,95,.18), rgba(11,13,20,.5)),
+    var(--plomb-archive);
+  border: 1px solid rgba(169,194,214,.18);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+/* trame thermique du placeholder */
+.plate__frame::before {
+  content: "";
+  position: absolute; inset: 0;
+  background-image:
+    repeating-linear-gradient(45deg, rgba(169,194,214,.04) 0 2px, transparent 2px 9px),
+    radial-gradient(60% 80% at 50% 30%, rgba(217,154,58,.07), transparent 70%);
+}
+.plate__placeholder {
+  position: relative;
+  text-align: center;
+  padding: 2rem;
+  max-width: 50ch;
+}
+.plate__pending {
+  font-family: var(--mono);
+  font-size: .68rem;
+  letter-spacing: .22em;
+  text-transform: uppercase;
+  color: rgba(196,210,224,.78);
+  margin: 0 0 1.1rem;
+}
+.plate__pending::before { content: "◦ "; }
+.plate__subject {
+  font-family: var(--serif-display);
+  font-style: italic;
+  font-weight: 300;
+  font-size: clamp(1.05rem, 2.2vw, 1.4rem);
+  line-height: 1.4;
+  color: #CDD9E4;
+  margin: 0;
+  text-wrap: balance;
+  /* léger halo pour décoller le texte du fond bitume + trame très sombre */
+  text-shadow: 0 1px 14px rgba(11,13,20,.85), 0 0 2px rgba(11,13,20,.9);
+}
+/* image réelle (si présente) — fond via JS qui ajoute .has-img */
+.plate__frame img {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  object-fit: cover;
+  display: none;
+}
+.plate.has-img .plate__frame img { display: block; }
+.plate.has-img .plate__placeholder { display: none; }
+.plate.has-img .plate__frame::before { mix-blend-mode: multiply; opacity: .5; }
+
+.plate__caption {
+  font-family: var(--mono);
+  font-size: .8rem;
+  letter-spacing: .03em;
+  color: rgba(223,231,238,.9);   /* contraste relevé : la légende se lit nettement */
+  text-align: center;
+  margin: 1.05rem auto 0;
+  max-width: none;               /* la légende tient sur une seule ligne… */
+  white-space: nowrap;
+  padding-inline: 1.5rem;
+  line-height: 1.55;
+}
+/* …et de l'air sous la légende, pour ne pas coller au blanc de la chronique */
+.plate:not(.plate--cover) { padding-bottom: clamp(1.6rem, 3.2vw, 2.6rem); }
+.plate--cover .plate__caption { display: none; }
+/* sur mobile, une légende longue ne peut pas tenir en une ligne : on la laisse revenir */
+@media (max-width: 680px) {
+  .plate__caption { white-space: normal; max-width: 90vw; }
+}
+
+/* grille de coordonnées sur les planches cartographiques */
+.plate[data-grid="1"] .plate__frame {
+  background-image:
+    repeating-linear-gradient(0deg, transparent 0 39px, rgba(31,58,95,.25) 39px 40px),
+    repeating-linear-gradient(90deg, transparent 0 39px, rgba(31,58,95,.25) 39px 40px);
+}
+
+/* ====================================================================
+   9. COUPE + Δ°C entre deux jours
+   ==================================================================== */
+.cut {
+  position: relative;
+  border: none;
+  height: 1px;
+  background: rgba(169,194,214,.15);
+  max-width: var(--measure);
+  margin: clamp(2rem,5vw,4rem) auto;
+}
+.cut[data-delta]::after {
+  content: attr(data-delta);
+  position: absolute; left: 50%; top: 50%;
+  transform: translate(-50%,-50%);
+  background: var(--plomb-archive);
+  padding: 0 1rem;
+  font-family: var(--mono);
+  font-size: .7rem;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--or-bitume);
+  white-space: nowrap;
+}
+.cut[data-delta=""]::after { display: none; }
+
+/* ====================================================================
+   10. STUB / ÉBAUCHE
+   ==================================================================== */
+.entry--stub {
+  background: var(--bitume-faille);
+  color: rgba(169,194,214,.6);
+  width: 100vw;
+  position: relative; left: 50%; right: 50%;
+  margin-left: -50vw; margin-right: -50vw;
+  padding-block: clamp(5rem, 12vw, 11rem);
+  text-align: center;
+}
+.entry--stub .entry__inner { max-width: 56ch; margin-inline: auto; padding-inline: 2rem; }
+.entry--stub .entry__title { color: rgba(169,194,214,.55); font-style: italic; }
+.stub__note {
+  font-family: var(--mono);
+  font-size: .8rem;
+  letter-spacing: .04em;
+  line-height: 1.7;
+  color: rgba(169,194,214,.45);
+  margin: 1.5rem auto 2.5rem;
+  max-width: 44ch;
+}
+.stub__void {
+  border: 1px dashed rgba(169,194,214,.22);
+  border-radius: 3px;
+  min-height: 26vh;
+  display: flex; align-items: center; justify-content: center;
+}
+.stub__void::after {
+  content: "";
+  width: 8px; height: 8px; border-radius: 50%;
+  background: rgba(169,194,214,.15);
+}
+
+/* ====================================================================
+   11. PIED / COLOPHON
+   ==================================================================== */
+.colophon {
+  background: var(--bitume-faille);
+  color: var(--papier-chaux);
+  padding: clamp(4rem, 9vw, 8rem) clamp(1.5rem, 5vw, 4rem) clamp(3rem,6vw,5rem);
+  border-top: 1px solid rgba(169,194,214,.12);
+}
+.colophon__inner { max-width: 70ch; margin-inline: auto; }
+.colophon__surface {
+  font-family: var(--mono);
+  font-size: .7rem; letter-spacing: .22em; text-transform: uppercase;
+  color: rgba(169,194,214,.5); margin: 0 0 3rem; text-align: center;
+}
+.colophon h2 {
+  font-family: var(--serif-display);
+  font-weight: 300; font-style: italic;
+  font-size: clamp(1.3rem, 3vw, 2rem);
+  color: var(--bleu-etain);
+  margin: 2.6rem 0 1rem;
+}
+.colophon p {
+  font-family: var(--serif-body);
+  font-size: 1.02rem; line-height: 1.7;
+  color: rgba(241,236,226,.85);
+  margin: 0 0 1rem;
+}
+.colophon .meta-line { font-family: var(--mono); font-size: .82rem; color: rgba(169,194,214,.7); letter-spacing: .02em; }
+.colophon a { color: var(--bleu-etain); text-decoration: underline; text-underline-offset: 3px; }
+.colophon__devise {
+  font-family: var(--serif-display); font-style: italic; font-weight: 300;
+  font-size: 1.3rem; text-align: center; color: var(--bleu-etain);
+  margin: 3.5rem 0 0; letter-spacing: .05em;
+}
+
+/* ---- Navigation persistante entre les jours ---- */
+.jump-toggle {
+  position: fixed;
+  right: clamp(.9rem, 2vw, 1.5rem);
+  bottom: clamp(.9rem, 2vw, 1.5rem);
+  z-index: 60;
+  /* masqué sur desktop (le thermomètre-rail navigue) ; révélé ≤720px */
+  display: none; align-items: center; gap: .55rem;
+  font-family: var(--mono); font-size: .72rem; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--bleu-etain);
+  background: rgba(11,13,20,.78);
+  border: 1px solid rgba(169,194,214,.28);
+  padding: .6rem .9rem;
+  border-radius: 999px;
+  cursor: pointer;
+  backdrop-filter: blur(8px);
+  transition: background .25s, border-color .25s, color .2s;
+}
+.jump-toggle:hover { background: var(--plomb-archive); border-color: rgba(169,194,214,.5); }
+.jump-toggle__bars { width: 14px; height: 9px; position: relative; }
+.jump-toggle__bars::before, .jump-toggle__bars::after,
+.jump-toggle__bars { background:
+  linear-gradient(currentColor,currentColor) left 0/100% 1.5px no-repeat; }
+.jump-toggle__bars::before, .jump-toggle__bars::after {
+  content: ""; position: absolute; left: 0; width: 100%; height: 1.5px; background: currentColor; }
+.jump-toggle__bars::before { top: 4px; width: 70%; }
+.jump-toggle__bars::after  { top: 8px; }
+
+/* Panneau de saut */
+.jump {
+  position: fixed;
+  right: clamp(.9rem, 2vw, 1.5rem);
+  bottom: calc(clamp(.9rem, 2vw, 1.5rem) + 3rem);
+  z-index: 61;
+  width: min(340px, calc(100vw - 2rem));
+  max-height: min(70vh, 620px);
+  overflow-y: auto;
+  background: rgba(11,13,20,.96);
+  border: 1px solid rgba(169,194,214,.22);
+  border-radius: 8px;
+  padding: .5rem;
+  box-shadow: 0 18px 50px rgba(0,0,0,.5);
+  backdrop-filter: blur(10px);
+}
+.jump[hidden] { display: none; }
+.jump__head {
+  font-family: var(--mono); font-size: .62rem; letter-spacing: .18em; text-transform: uppercase;
+  color: rgba(169,194,214,.6); margin: .3rem .6rem .5rem;
+}
+.jump__row {
+  display: grid; grid-template-columns: 1fr auto; align-items: baseline; gap: .6rem;
+  padding: .42rem .6rem; border-radius: 4px; text-decoration: none;
+  color: var(--papier-chaux);
+  transition: background .18s;
+}
+.jump__row:hover { background: rgba(169,194,214,.08); }
+.jump__date { font-family: var(--mono); font-size: .78rem; letter-spacing: .02em; color: var(--bleu-etain); }
+.jump__temp { font-family: var(--mono); font-size: .74rem; color: var(--or-bitume); }
+.jump__title {
+  grid-column: 1 / -1;
+  font-family: var(--serif-display); font-style: italic; font-weight: 300;
+  font-size: .92rem; color: rgba(214,154,128,.92); line-height: 1.2;
+}
+.jump__row[data-kind="interior"] .jump__date,
+.jump__row[data-kind="stub"] .jump__date { color: rgba(169,194,214,.7); }
+
+/* ====================================================================
+   12. MOTION : voix intrusive qui « gicle »
+   ==================================================================== */
+.block--intrusion {
+  opacity: 0;
+  transform: translateX(12px);
+}
+.block--intrusion.is-in {
+  opacity: 1;
+  transform: translateX(0);
+  transition: opacity .8s ease, transform .55s cubic-bezier(.2,.9,.3,1);
+}
+.block--intrusion[data-rhythm="crowd"].is-in { animation: crowdPulse 3.2s ease-in-out infinite .8s; }
+@keyframes crowdPulse {
+  0%,100% { transform: translateX(0) scale(1); }
+  50%     { transform: translateX(0) scale(1.025); }
+}
+/* planches : volet météo qui s'abaisse */
+.plate { clip-path: inset(0 0 0 0); }
+.plate.reveal-ready { clip-path: inset(0 0 100% 0); }
+.plate.is-in { clip-path: inset(0 0 0 0); transition: clip-path 1.1s cubic-bezier(.4,0,.1,1); }
+/* °C héros : fondu-compteur */
+.sky__temp { transition: opacity .5s ease, transform .5s ease; }
+
+/* ---- prefers-reduced-motion + data-reduced : on coupe le décor ---- */
+@media (prefers-reduced-motion: reduce) {
+  .sky__haze { animation: none !important; opacity: 0 !important; }
+  .block--intrusion { opacity: 1 !important; transform: none !important; transition: none !important; animation: none !important; }
+  .plate, .plate.reveal-ready, .plate.is-in { clip-path: none !important; transition: none !important; }
+  .mercury__fill, .mercury__meniscus { transition: none !important; }
+  .overture__act { opacity: 1 !important; transform: none !important; transition: none !important; }
+  .cover__cue-arrow { animation: none !important; }
+}
+body[data-reduced="1"] .sky__haze { animation: none !important; opacity: 0 !important; }
+body[data-reduced="1"] .block--intrusion { opacity: 1 !important; transform: none !important; transition: none !important; animation: none !important; }
+body[data-reduced="1"] .plate,
+body[data-reduced="1"] .plate.reveal-ready,
+body[data-reduced="1"] .plate.is-in { clip-path: none !important; transition: none !important; }
+body[data-reduced="1"] .mercury__fill,
+body[data-reduced="1"] .mercury__meniscus { transition: none !important; }
+
+/* ====================================================================
+   13. RESPONSIVE — jusqu'au mobile
+   ==================================================================== */
+@media (max-width: 720px) {
+  :root { --sky-h: clamp(44px, 8vh, 60px); --fs-body: 1.08rem; }
+
+  /* gutter + mercure repliés en barre 4px sous le ciel ; le thermomètre-nav
+     cède la place au panneau « Les jours » (trop serré à l'horizontale). */
+  .gutter { width: 100%; height: 4px; bottom: auto;
+    top: var(--sky-h); justify-content: stretch; }
+  .mercury { top: 0; bottom: 0; left: 0; right: 0; width: auto; height: 4px; }
+  .mercury__fill { top: 0; bottom: 0; left: 0; right: auto;
+    width: var(--mercury-fill); height: 100%;
+    background: linear-gradient(to right,
+      var(--bleu-etain) 0%, var(--or-bitume) 50%, var(--vermillon) 78%, var(--blanc-incandescent) 100%); }
+  .rail { display: none; }
+  body.reading .jump-toggle { display: inline-flex; }
+
+  .book__column { padding-left: clamp(1.2rem,4vw,2rem); }
+  .entry__temp-inline { margin-left: auto; }
+
+  /* la voix intrusive garde son traitement sobre (pas d'encadré sur mobile) */
+  .sky__temp { font-size: clamp(1.15rem, 5.5vw, 1.7rem); }
+  .jump { right: 1rem; left: 1rem; width: auto; bottom: 4.2rem; }
+  .jump-toggle { right: 1rem; }
+  /* sommaire : date + degré + miniature en ligne, titre de vignette en dessous */
+  .sommaire__link { grid-template-columns: 12px 1fr auto auto; gap: .5rem .7rem; }
+  .sommaire__label { grid-column: 1 / -1; padding-left: 1.65rem; }
+  .sommaire__thumb { width: 40px; height: 28px; }
+}
+
+@media (max-width: 420px) {
+  .sky__date { font-size: .62rem; max-width: 60%; }
+}
+@media (max-width: 360px) {
+  .sky__temp { font-size: clamp(1.05rem, 5vw, 1.5rem); }
+  .sky__date { max-width: 56%; }
+}
+
+</style></head>
+<body data-temp="38" data-heat="" data-faille="0" data-stub="0"><a class="skip-link" href="#book">Aller au livre</a><header class="cover"><div class="cover__sky" aria-hidden="true"></div><figure class="plate plate--cover" data-slot="cover" data-src="assets/illustrations/cover.webp" style="--aspect:16 / 9;"><div class="plate__frame"><img alt="Paris, sous le dôme. 1er juin 2026." decoding="async"><div class="plate__placeholder"><p class="plate__pending">Illustration à venir</p><p class="plate__subject">Les toits de zinc de Paris sous un dôme de ciel bleu d'étain parfait et vide.</p></div></div></figure><div class="cover__veil" aria-hidden="true"></div><p class="cover__eyebrow mono">Le ciel ce jour-là · bleu d'étain · 1er juin 2026</p><div class="cover__centre"><h1 class="cover__title">Paris à 50°C</h1><div class="cover__sub"><p class="cover__sub-lead">En 2022, nous avions imaginé une canicule majeure à Paris, se déroulant en <mark class="cover__hot">juin 2026</mark>.</p><p class="cover__sub-note" data-typewriter><span class="cover__sub-ghost">Toute ressemblance avec la réalité n'est pas fortuite.</span><span class="cover__sub-ink" aria-hidden="true"></span></p></div></div><a class="cover__cue mono" href="#ouverture" aria-label="Commencer la lecture"><span>défiler</span><span class="cover__cue-arrow" aria-hidden="true">↓</span></a></header><section class="overture" id="ouverture" aria-label="Les auteurs"><div class="overture__act act-enter"><p class="overture__authors">Agathe Freydefont · Florian Zito · Alexandre Florentin</p><p class="overture__dir mono">Sous la direction d'<a class="overture__dir-link" href="https://linktr.ee/alexmflorentin" target="_blank" rel="noopener noreferrer">Alexandre Florentin</a></p><a class="overture__enter" href="#book">Descendre dans la canicule <span class="arrow" aria-hidden="true">↓</span></a></div></section><div class="sky" role="status" aria-live="polite" aria-label="Le ciel ce jour-là"><span class="sky__date mono"></span><span class="sky__temp" aria-label="Température dans la fiction"></span><div class="sky__haze" aria-hidden="true"></div></div><main class="book" id="book"><aside class="gutter"><div class="mercury" aria-hidden="true"><div class="mercury__fill"></div></div><nav class="rail" aria-label="Aller à un jour"><a class="rail__day" href="#j00" data-kind="chronicle" style="--p:0.0;--dot:#1C2230;" aria-label="LUNDI 1er Juin 2026"><span class="rail__dot" aria-hidden="true"></span><span class="rail__tip mono" aria-hidden="true">LUNDI 1er Juin 2026<span class="rail__tip-t"></span></span></a><a class="rail__day" href="#j01" data-kind="chronicle" style="--p:0.0312;--dot:#C4341E;" aria-label="MARDI 2 Juin 2026, 48°C"><span class="rail__dot" aria-hidden="true"></span><span class="rail__tip mono" aria-hidden="true">MARDI 2 Juin 2026<span class="rail__tip-t">48°C</span></span></a><a class="rail__day" href="#j02" data-kind="chronicle" style="--p:0.0625;--dot:#C4341E;" aria-label="3 Juin 2026"><span class="rail__dot" aria-hidden="true"></span><span class="rail__tip mono" aria-hidden="true">3 Juin 2026<span class="rail__tip-t"></span></span></a><a class="rail__day" href="#j03" data-kind="chronicle" style="--p:0.0938;--dot:#C4341E;" aria-label="4 Juin 2026"><span class="rail__dot" aria-hidden="true"></span><span class="rail__tip mono" aria-hidden="true">4 Juin 2026<span class="rail__tip-t"></span></span></a><a class="rail__day" href="#j04" data-kind="chronicle" style="--p:0.125;--dot:#C4341E;" aria-label="5 Juin 2026"><span class="rail__dot" aria-hidden="true"></span><span class="rail__tip mono" aria-hidden="true">5 Juin 2026<span class="rail__tip-t"></span></span></a><a class="rail__day" href="#j05" data-kind="chronicle" style="--p:0.1562;--dot:#C4341E;" aria-label="7 Juin 2026"><span class="rail__dot" aria-hidden="true"></span><span class="rail__tip mono" aria-hidden="true">7 Juin 2026<span class="rail__tip-t"></span></span></a><a class="rail__day" href="#j06" data-kind="chronicle" style="--p:0.1875;--dot:#C4341E;" aria-label="8 Juin 2026"><span class="rail__dot" aria-hidden="true"></span><span class="rail__tip mono" aria-hidden="true">8 Juin 2026<span class="rail__tip-t"></span></span></a><a class="rail__day" href="#j07" data-kind="chronicle" style="--p:0.2188;--dot:#C4341E;" aria-label="9 Juin 2026"><span class="rail__dot" aria-hidden="true"></span><span class="rail__tip mono" aria-hidden="true">9 Juin 2026<span class="rail__tip-t"></span></span></a><a class="rail__day" href="#j08" data-kind="chronicle" style="--p:0.25;--dot:#D9712A;" aria-label="12 Juin 2026, 45°C"><span class="rail__dot" aria-hidden="true"></span><span class="rail__tip mono" aria-hidden="true">12 Juin 2026<span class="rail__tip-t">45°C</span></span></a><a class="rail__day" href="#j09" data-kind="chronicle" style="--p:0.2812;--dot:#D9712A;" aria-label="13 Juin 2026"><span class="rail__dot" aria-hidden="true"></span><span class="rail__tip mono" aria-hidden="true">13 Juin 2026<span class="rail__tip-t"></span></span></a><a class="rail__day" href="#j10" data-kind="interior" style="--p:0.3125;--dot:#D9712A;" aria-label="14 Juin 2026 — Le reste"><span class="rail__dot" aria-hidden="true"></span><span class="rail__tip mono" aria-hidden="true">14 Juin 2026<span class="rail__tip-t"></span><i>Le reste</i></span></a><a class="rail__day" href="#j11" data-kind="chronicle" style="--p:0.3438;--dot:#D99A3A;" aria-label="15 Juin 2026, 43°C"><span class="rail__dot" aria-hidden="true"></span><span class="rail__tip mono" aria-hidden="true">15 Juin 2026<span class="rail__tip-t">43°C</span></span></a><a class="rail__day" href="#j12" data-kind="chronicle" style="--p:0.375;--dot:#A9C2D6;" aria-label="16 Juin 2026, 40°C"><span class="rail__dot" aria-hidden="true"></span><span class="rail__tip mono" aria-hidden="true">16 Juin 2026<span class="rail__tip-t">40°C</span></span></a><a class="rail__day" href="#j13" data-kind="interior" style="--p:0.4062;--dot:#A9C2D6;" aria-label="17 Juin 2026 — Petit personnage"><span class="rail__dot" aria-hidden="true"></span><span class="rail__tip mono" aria-hidden="true">17 Juin 2026<span class="rail__tip-t"></span><i>Petit personnage</i></span></a><a class="rail__day" href="#j14" data-kind="chronicle" style="--p:0.4375;--dot:#C7A85A;" aria-label="18 Juin 2026, 42°C"><span class="rail__dot" aria-hidden="true"></span><span class="rail__tip mono" aria-hidden="true">18 Juin 2026<span class="rail__tip-t">42°C</span></span></a><a class="rail__day" href="#j15" data-kind="chronicle" style="--p:0.4688;--dot:#C7A85A;" aria-label="19 Juin 2026"><span class="rail__dot" aria-hidden="true"></span><span class="rail__tip mono" aria-hidden="true">19 Juin 2026<span class="rail__tip-t"></span></span></a><a class="rail__day" href="#j16" data-kind="chronicle" style="--p:0.5;--dot:#C7A85A;" aria-label="20 juin 2026"><span class="rail__dot" aria-hidden="true"></span><span class="rail__tip mono" aria-hidden="true">20 juin 2026<span class="rail__tip-t"></span></span></a><a class="rail__day" href="#j17" data-kind="chronicle" style="--p:0.5312;--dot:#A9C2D6;" aria-label="22 Juin 2026, 38°C"><span class="rail__dot" aria-hidden="true"></span><span class="rail__tip mono" aria-hidden="true">22 Juin 2026<span class="rail__tip-t">38°C</span></span></a><a class="rail__day" href="#j18" data-kind="chronicle" style="--p:0.5625;--dot:#FBFAF4;" aria-label="23 Juin 2021, 50°C"><span class="rail__dot" aria-hidden="true"></span><span class="rail__tip mono" aria-hidden="true">23 Juin 2021<span class="rail__tip-t">50°C</span></span></a><a class="rail__day" href="#j19" data-kind="interior" style="--p:0.5938;--dot:#FBFAF4;" aria-label="24 juin 2026"><span class="rail__dot" aria-hidden="true"></span><span class="rail__tip mono" aria-hidden="true">24 juin 2026<span class="rail__tip-t"></span></span></a><a class="rail__day" href="#j20" data-kind="chronicle" style="--p:0.625;--dot:#FBFAF4;" aria-label="25 Juin 2026"><span class="rail__dot" aria-hidden="true"></span><span class="rail__tip mono" aria-hidden="true">25 Juin 2026<span class="rail__tip-t"></span></span></a><a class="rail__day" href="#j21" data-kind="chronicle" style="--p:0.6562;--dot:#FBFAF4;" aria-label="26 Juin 2026"><span class="rail__dot" aria-hidden="true"></span><span class="rail__tip mono" aria-hidden="true">26 Juin 2026<span class="rail__tip-t"></span></span></a><a class="rail__day" href="#j22" data-kind="chronicle" style="--p:0.6875;--dot:#D9712A;" aria-label="27 Juin 2026, 45°C"><span class="rail__dot" aria-hidden="true"></span><span class="rail__tip mono" aria-hidden="true">27 Juin 2026<span class="rail__tip-t">45°C</span></span></a><a class="rail__day" href="#j23" data-kind="interior" style="--p:0.7188;--dot:#D9712A;" aria-label="28 Juin 2026 — Le baron"><span class="rail__dot" aria-hidden="true"></span><span class="rail__tip mono" aria-hidden="true">28 Juin 2026<span class="rail__tip-t"></span><i>Le baron</i></span></a><a class="rail__day" href="#j24" data-kind="chronicle" style="--p:0.75;--dot:#D9712A;" aria-label="29 Juin 2026"><span class="rail__dot" aria-hidden="true"></span><span class="rail__tip mono" aria-hidden="true">29 Juin 2026<span class="rail__tip-t"></span></span></a><a class="rail__day" href="#j25" data-kind="chronicle" style="--p:0.7812;--dot:#FBFAF4;" aria-label="30 Juin 2026, 50°C"><span class="rail__dot" aria-hidden="true"></span><span class="rail__tip mono" aria-hidden="true">30 Juin 2026<span class="rail__tip-t">50°C</span></span></a><a class="rail__day" href="#j26" data-kind="interior" style="--p:0.8125;--dot:#FBFAF4;" aria-label="1er Juillet 2026 · Matin — Brève — Yum yum yum"><span class="rail__dot" aria-hidden="true"></span><span class="rail__tip mono" aria-hidden="true">1er Juillet 2026 · Matin<span class="rail__tip-t"></span><i>Brève — Yum yum yum</i></span></a><a class="rail__day" href="#j27" data-kind="chronicle" style="--p:0.8438;--dot:#FBFAF4;" aria-label="1er Juillet 2026 · Soir"><span class="rail__dot" aria-hidden="true"></span><span class="rail__tip mono" aria-hidden="true">1er Juillet 2026 · Soir<span class="rail__tip-t"></span></span></a><a class="rail__day" href="#j28" data-kind="chronicle" style="--p:0.875;--dot:#FBFAF4;" aria-label="2 Juillet 2026, 50°C"><span class="rail__dot" aria-hidden="true"></span><span class="rail__tip mono" aria-hidden="true">2 Juillet 2026<span class="rail__tip-t">50°C</span></span></a><a class="rail__day" href="#j29" data-kind="interior" style="--p:0.9062;--dot:#FBFAF4;" aria-label="2 Juillet 2026 · nuit — La nouvelle aube"><span class="rail__dot" aria-hidden="true"></span><span class="rail__tip mono" aria-hidden="true">2 Juillet 2026 · nuit<span class="rail__tip-t"></span><i>La nouvelle aube</i></span></a><a class="rail__day" href="#j30" data-kind="interior" style="--p:0.9375;--dot:#FBFAF4;" aria-label="3 Juillet 2026, 50°C"><span class="rail__dot" aria-hidden="true"></span><span class="rail__tip mono" aria-hidden="true">3 Juillet 2026<span class="rail__tip-t">50°C</span></span></a><a class="rail__day" href="#j31" data-kind="stub" style="--p:0.9688;--dot:#FBFAF4;" aria-label="4 Juillet 2026 — Brève sur l’occupation de l’appart"><span class="rail__dot" aria-hidden="true"></span><span class="rail__tip mono" aria-hidden="true">4 Juillet 2026<span class="rail__tip-t"></span><i>Brève sur l’occupation de l’appart</i></span></a><a class="rail__day" href="#j32" data-kind="chronicle" style="--p:1.0;--dot:#FBFAF4;" aria-label="5 Juillet 2026, 50°C"><span class="rail__dot" aria-hidden="true"></span><span class="rail__tip mono" aria-hidden="true">5 Juillet 2026<span class="rail__tip-t">50°C</span></span></a></nav></aside><div class="book__column"><article class="entry entry--chronicle" id="j00" data-id="j00" data-kind="chronicle" data-temp="" data-faille="0" data-date-fiction="LUNDI 1er Juin 2026" data-qualifier=""><header class="entry__head"><span class="entry__date-fiction mono">LUNDI 1er Juin 2026</span></header><div class="entry__body"><p class="block">[1/06/2026, 9h30] Alerte <span class="handle">@MeteoFrance</span> : “La France pourrait connaître une vague de chaleur inédite d’ici la fin du mois de Juin, de par son intensité et sa durée. Des températures encore jamais enregistrées pourraient être atteintes à cette occasion dans l’ensemble du pays.”</p><p class="block">9h38, le tweet est supprimé.</p><p class="block">A 9h40, un nouveau tweet est publié : « La France pourrait connaître une vague de chaleur de forte ampleur d’ici la fin du mois de juin. Des températures comparables à celles de 2024 au moins sont attendues. »</p></div></article><hr class="cut" data-delta=""><article class="entry entry--chronicle" id="j01" data-id="j01" data-kind="chronicle" data-temp="48" data-faille="0" data-date-fiction="MARDI 2 Juin 2026" data-qualifier=""><header class="entry__head"><span class="entry__date-fiction mono">MARDI 2 Juin 2026</span><span class="entry__temp-inline mono">48&nbsp;°C</span></header><div class="entry__body"><p class="block"><span class="timestamp">[02.06.2026]</span> La presse titre sur la victoire surprise, en quart de finale de Roland Garros, du jeune français <span class="handle">@César</span> Bouchelaghem, - 23 ans seulement ! -, face à l’actuel numéro 7 mondial. Une première depuis <span class="handle">@Jo-Wilfried</span> Tsonga en 2015 !</p><p class="block"><span class="handle">@BonPote</span> diffuse une capture d’écran du tweet de Météo France supprimé la veille. Il est accompagné d’une carte des températures pour fin Juin : la France est dans le rouge. Pour la première fois du noir et du blanc sont mêmes utilisés et on peut y lire un 48°C à Paris.</p><p class="block"><span class="handle">@BonPote</span> explique que cette carte aurait dû être diffusée par <span class="handle">@VigiMeteoFrance</span> et que des prévisionnistes ont voulu alerter sur la gravité de la situation en la faisant fuiter.</p><figure class="plate" data-slot="leak-map" data-src="assets/illustrations/leak-map.webp" style="--aspect:16 / 9;" data-grid="1"><div class="plate__frame"><img alt="La carte que Météo France a supprimée. Fin juin : jusqu'à 48°C." decoding="async"><div class="plate__placeholder"><p class="plate__pending">Illustration à venir</p><p class="plate__subject">La carte météo « fuitée » de Météo France : la France isotherme dans le rouge.</p></div></div><figcaption class="plate__caption mono">La carte que Météo France a supprimée. Fin juin : jusqu'à 48°C.</figcaption></figure><p class="block"><span class="handle">@Jean-Marc</span> Jancovici relaie l’information sur LinkedIn en commentant : « Les journalistes me demandent mon avis sur cette carte : je n’en ai pas, car je ne suis ni voyant ni météorologue. Par contre, si elle est vraie ça va secouer, non pas comme en 40, mais bien plus qu’en 2003.</p><p class="block">Le dernier rapport du GIEC est très clair : nous allons connaître à brève échéance de tels niveaux de chaleur en France (nos enfants de manière certaine, et très probablement aussi la génération des vieux comme moi). Nous y préparer au plus tôt sera le mieux. »</p></div></article><hr class="cut" data-delta=""><article class="entry entry--chronicle" id="j02" data-id="j02" data-kind="chronicle" data-temp="" data-faille="0" data-date-fiction="3 Juin 2026" data-qualifier=""><header class="entry__head"><span class="entry__date-fiction mono">3 Juin 2026</span></header><div class="entry__body"><p class="block">[3.06.2026] La carte « fuitée » a été largement relayée. Est-elle fiable ? <span class="handle">@Paloma</span> Moritz, interviewe pour <span class="handle">@Mediapart</span> le climatologue <span class="handle">@Cassanou</span> et le météorologue Etienne Kapikian <span class="handle">@EKMeteo</span>, ancien chercheur chez Météo France.</p><p class="block">“En toute rigueur, je ne peux attester la véracité de la carte. Le changement climatique rend très probable ce genre d’évènement à horizon 2050, mais on peut tout à fait le vivre dès cette année. Cela me rappelle le dôme de chaleur du Canada en 2021.” déclare <span class="handle">@Cassanou.</span></p><p class="block"><span class="handle">@EKMeteo</span> de compléter : “et l’Inde en 2022 ! La seule bonne nouvelle c’est que d’autres institutions, en France et dans le monde, disposent des outils pour faire ce genre de carte. La vérité finira par sortir. A temps, j’espère.”</p></div></article><hr class="cut" data-delta=""><article class="entry entry--chronicle" id="j03" data-id="j03" data-kind="chronicle" data-temp="" data-faille="0" data-date-fiction="4 Juin 2026" data-qualifier=""><header class="entry__head"><span class="entry__date-fiction mono">4 Juin 2026</span></header><div class="entry__body"><p class="block"><span class="timestamp">[04.06.2026]</span> Un article de <span class="handle">@Médiapart</span> le confirme, et c’est un premier scandale de cette ampleur chez Météo France : le bulletin d’alerte canicule devait bien comporter une carte “apocalyptique” des températures.</p><p class="block">Le tweet aurait été reformulé à la demande directe du PDG de Météo France. Sous couvert de l’anonymat, plusieurs sources internes confirment une tendance à une communication "diluée", pour “éviter toute panique dans les régions les plus affectées”.</p><p class="block">Raphaël Enthoven réagit sur twitter : “scoop Médiapart : il va faire chaud cet été. Heureusement que vous n'appartenez qu’à vos lecteurs, parce que si nos impôts servaient à cela... ”</p></div></article><hr class="cut" data-delta=""><article class="entry entry--chronicle" id="j04" data-id="j04" data-kind="chronicle" data-temp="" data-faille="0" data-date-fiction="5 Juin 2026" data-qualifier=""><header class="entry__head"><span class="entry__date-fiction mono">5 Juin 2026</span></header><div class="entry__body"><p class="block"><span class="timestamp">[05.06.2026]</span> Lors du débat à l’Assemblée sur la sécurité́ alimentaire, le député-boulanger Stéphane Ravacley brandit une baguette de pain : “Ce bien, ce n’est pas censé être du luxe. A 2,20€ en moyenne à Besançon, ça le devient. Qu’a fait le gouvernement pour anticiper ces problèmes ?</p><p class="block">.. Vous avez augmenté l'indemnité́ des ministres et des députés en début de mandat ! Vous ne la vivez pas l'inflation !" ”</p><p class="block">En réponse aux tensions qui montent lors des manifestations pour le pouvoir d’achat, le gouvernement propose un “chèque panier repas” aux foyers français les plus modestes, 8 mois après avoir limité les exportations alimentaires hors de l’UE.</p><p class="block">Plusieurs économistes contestent la mesure, qu’ils jugent susceptible d’alimenter la spirale inflationniste à laquelle elle est supposée répondre. Devant les médias, les oppositions rappellent leurs propositions : gel des prix sur des biens de première nécessité, contrôle des marges ou taxation des distributeurs, fin de l’exportation y compris dans l’UE, végétalisation de nos assiettes, etc.</p></div></article><hr class="cut" data-delta=""><article class="entry entry--chronicle" id="j05" data-id="j05" data-kind="chronicle" data-temp="" data-faille="0" data-date-fiction="7 Juin 2026" data-qualifier=""><header class="entry__head"><span class="entry__date-fiction mono">7 Juin 2026</span></header><div class="entry__body"><p class="block">[7.06.2026] Après un match incroyable comme seul <span class="hashtag">#RolandGarros</span> sait nous les offrir, César Bouchelaghem remporte le tournoi. Une victoire historique qui est fêtée dans les rues de plusieurs grandes villes de France.</p><p class="block">Le jeune français a doublement gagné les coeurs en annonçant faire don de sa dotation - 2,8 M€ - aux <span class="handle">@CoeurResto</span> pour aider les jeunes particulièrement touchés par les prix de l’alimentation.</p></div></article><hr class="cut" data-delta=""><article class="entry entry--chronicle" id="j06" data-id="j06" data-kind="chronicle" data-temp="" data-faille="0" data-date-fiction="8 Juin 2026" data-qualifier=""><header class="entry__head"><span class="entry__date-fiction mono">8 Juin 2026</span></header><div class="entry__body"><p class="block">[8.06.2026] La porte-parole du gouvernement est invitée au <span class="hashtag">#le79Inter</span> de <span class="handle">@franceinter</span> pour parler de la grogne qui semble être toujours là malgré le “chèque panier repas” mis en place par le gouvernement en fin de semaine dernière.</p><p class="block">Un auditeur lui demande : “avec la canicule qui s’annonce, que va faire le gouvernement pour assurer pas seulement des prix abordables, mais juste le fait qu’on ait vraiment quelque chose dans nos assiettes ?”</p><p class="block">“Je vous remercie de votre question. On n'a jamais aucune certitude en matière de météorologie, mais on doit surtout se préparer, se préparer à toutes les éventualités. N’écoutons donc pas les oiseaux de malheur médiatique qui nous prédisent de griller au four.</p><p class="block">Oui, il va faire chaud cet été. Comme tous les étés depuis que l’été n’a jamais été. Un peu plus depuis que le changement climatique est lancé, c’est vrai, et je voudrais rappeler avec quelle fermeté le gouvernement lutte contre le changement climatique en même temps qu’il apporte des solutions aux problèmes du quotidien des françaises et des français. Parfois avec beaucoup de courage, comme lorsque nous avons décidé de restreindre nos exportations pour garantir la sécurité alimentaire des français et que...”</p><p class="block"><span class="handle">@Léa</span> Salamé la coupe : ... Solutions qui sont sources de grandes tensions avec nos voisins anglais.</p><p class="block">« Nous assumons de vouloir protéger les français tout en aidant au maximum de nos capacités nos voisins, même quand ils ont quitté la solidarité européenne, de leur propre gré, je vous le rappelle madame Salamé.</p><p class="block">Alors oui il fera chaud cet été mais la France est forte, et je note que le mois de Mai a été plus pluvieux que les dernières années, ce qui devrait nous permettre d’avoir de meilleures récoltes cette année. Nous mangerons bien cet été monsieur l’auditeur, je vous le garantis”.</p></div></article><hr class="cut" data-delta=""><article class="entry entry--chronicle" id="j07" data-id="j07" data-kind="chronicle" data-temp="" data-faille="0" data-date-fiction="9 Juin 2026" data-qualifier=""><header class="entry__head"><span class="entry__date-fiction mono">9 Juin 2026</span></header><div class="entry__body"><p class="block">[9.06.2026] Le <span class="handle">@MET</span> Office, équivalent de Météo France au Royaume-Uni, publie une carte de ses prévisions de température à 15 jours. Contrairement à ses habitudes, on y aperçoit la moitié nord de la France : du rouge partout, de l’air nul part. Et un message :</p><p class="block">“The <span class="handle">@MET</span> Office strongly advises against all travel to France, whatever the reason, for the upcoming month.”</p></div></article><hr class="cut" data-delta=""><article class="entry entry--chronicle" id="j08" data-id="j08" data-kind="chronicle" data-temp="45" data-faille="0" data-date-fiction="12 Juin 2026" data-qualifier=""><header class="entry__head"><span class="entry__date-fiction mono">12 Juin 2026</span><span class="entry__temp-inline mono">45&nbsp;°C</span></header><div class="entry__body"><p class="block"><span class="timestamp">[11.06.2026]</span> 19h30 : <span class="handle">@Valérie</span> Masson-Delmotte, présidente du GIEC, participe à un talk- show très regardé, diffusé à la télé et sur Instagram. D’un ton calme mais grave, elle explique : “nous avons une dizaine de jours pour nous préparer à une vague de chaleur sans précédent.”</p><p class="block">“Une masse d’air chaud nous vient du Maghreb et est en train de remonter sur le Portugal et l’Espagne où le 45°C sera atteint en début de semaine. Au début, un air venant de l’Atlantique va nous préserver un peu, mais ça ne sera plus le cas d’ici 10 jours. Ce type de phénomène, nous les voyions dans nos modèles pour le milieu du siècle, mais il semblerait que la réalité́ nous rattrape bien plus vite que prévu. C’est indéniablement lié à au changement climatique, lui-même lié à nos modes ..” Un essayiste en vogue la coupe :</p><p class="block">"Chaque année on nous annonce l’apocalypse ! Le changement climatique est parti pour durer, et vous êtes la mieux placée pour le savoir. Il va falloir apprendre à vivre avec : on ne peut pas mettre le pays à l’arrêt. Regardez, au fil des années les Français se sont accoutumés à ces étés plus chauds. Ils ne veulent pas de vos simulations pour vous payer votre quart d’heure de gloire en leur interdisant de faire ci ou ça. C’est la doctrine du choc et ça ne marche pas avec nous ! ”.</p><p class="block">Jingle, pub : dans une forêt enneigée, un homme conduit le dernier e-tron d’Audi, fenêtre ouverte, 2 bambins à l’arrière. “Pour la planète et vos enfants, roulez en e-tron et bénéficiez de nos dernières innovations en termes de climatisation...pour être au frais comme en hiver”.</p></div></article><hr class="cut" data-delta=""><article class="entry entry--chronicle" id="j09" data-id="j09" data-kind="chronicle" data-temp="" data-faille="0" data-date-fiction="13 Juin 2026" data-qualifier=""><header class="entry__head"><span class="entry__date-fiction mono">13 Juin 2026</span></header><div class="entry__body"><p class="block"><span class="timestamp">[13.06.2026]</span> Les extraits de l’intervention d’hier de VMD circulent sur Twitter et le clash continue. Un internaute publie un meme accompagné du texte suivant “On est vraiment des bleus. <span class="hashtag">#gargamel</span> <span class="hashtag">#marmite</span> <span class="hashtag">#schtroumpfs</span>”</p></div></article><hr class="cut" data-delta=""><article class="entry entry--interior" id="j10" data-id="j10" data-kind="interior" data-temp="" data-faille="1" data-date-fiction="14 Juin 2026" data-qualifier=""><div class="entry__inner"><header class="entry__head"><h2 class="entry__title">Le reste</h2><span class="entry__date-fiction mono">14 Juin 2026</span></header><figure class="plate" data-slot="le-reste" data-src="assets/illustrations/le-reste.webp" style="--aspect:4 / 3;"><div class="plate__frame"><img alt="La route effacera tout. Quelque part au-dessus de Moulins." decoding="async"><div class="plate__placeholder"><p class="plate__pending">Illustration à venir</p><p class="plate__subject">Une autoroute de fuite au crépuscule, l'air chaud qui tremble au-dessus du goudron.</p></div></div><figcaption class="plate__caption mono">La route effacera tout. Quelque part au-dessus de Moulins.</figcaption></figure><div class="entry__body"><p class="block">Il avait pensé que le sentiment d’étrangeté partirait sur la route.</p><p class="block">Mais ça n’a aucun sens mais on est les seuls à faire ça putain. Dans des moments comme ça Être étrange ou étranger, peu importe ce que c’était vraiment, ça se déposerait sur la route.</p><p class="block">La terre sèche, les fleurs sauvages, le goudron, les arbres, les grandes zones commerciales, leur zinc, leur métal et les touristes qu’on croise, les paysages qui défileront et les couleurs qu’on se mettra à voir, tout prendrait le pas sur le reste. Il finirait par rouler dessus.</p><p class="block block--intrusion" data-rhythm="falling">Dans des moments comme ça je te déteste. C’est ça que tu veux que je dise ?</p><p class="block">Il se sentirait bien. Il regarderait ses deux enfants et sa femme avec l’air fier et absolu du patriarche qui a un parlé un jour et qu’on a jamais cessé d’écouter.</p><p class="block">Fuir la chaleur à la campagne, fuir la ville pour la campagne, quitter la cité qui se remplit de peste, de bruit et de fureur pour la paix éternelle de la campagne, ce n’est pas le dernier du chic ?</p><p class="block block--intrusion" data-rhythm="falling">Mais qu’est-ce que tu veux que te je dise, t’es là, tu palpites, t’as les yeux fous, tu ne parles que de ça comme d’une évidence, je</p><p class="block block--intrusion" data-rhythm="falling">Je te</p><p class="block">Même s’ils ne partent pas pour une résidence secondaire, parce qu’ils n’en possèdent pas, même s’ils partent pour la maison d’un ami, au fond d’un village auvergnat, c’est quand même chic non ? C’est quand même prudent ?</p><p class="block">Intelligent, prudent, avisé, prévoyant, génial, génial, oui, comme les grands hommes qui ont eu raison trop tôt.</p><p class="block block--intrusion" data-rhythm="falling">On a tenu ici plusieurs fois, je vois pas pourquoi</p><p class="block block--intrusion" data-rhythm="falling">Je te</p><p class="block">Il n’en pouvait plus des murs de leur appartement, du canapé à déplier dans le salon le soir, des projets de sa femme pour mettre un paravent au milieu du séjour ce qui leur donnerait un vrai espace-nuit au milieu du reste sans déséquilibrer l’espace global. Il ne sait pas si ça a commencé avec les annonces de chaleur, si ça remontait à avant. Les visages pâles de ses enfants, le lien qu’il n’arrive jamais à faire.</p><p class="block block--intrusion" data-rhythm="falling">Je te</p><p class="block">Il sait que quand les nouvelles sont tombées, les nouvelles ou les rumeurs, les cartes supprimées et les prévisions pas alarmistes, il l’a pris pour un signe, c’était comme si la télévision disait au pays entier Il va faire chaud et qu’il avait entendu BOUGE ! Enlève toi de ces murs qui te rendent tristes parce que tu n’as jamais assez gagné pour t’en payer d’autres.</p><p class="block">Prend les gens que tu aimes avec toi parce que tu ne sauras jamais vivre sans - et ils t’en voudront, mais prends les avec toi et BOUGE. La route, la route effacera tout.</p><p class="block block--intrusion" data-rhythm="falling">Et on revient quand ? Dans quinze jours, la queue entre les jambes ?</p><p class="block block--intrusion" data-rhythm="falling">Papa vraiment dans ces moments là</p><p class="block block--intrusion" data-rhythm="falling">Je te</p><p class="block block--intrusion" data-rhythm="falling">Déteste</p><p class="block">Dans l’air chaud du soir, quelque part au-dessus de Moulins, il termine sa cigarette. Son fils revient des toilettes, sa femme passe des appels et sa fille râle sur le siège arrière. Le sentiment d’étrange grandit, il devrait être dans la ligne 6, il est au bord d’une départementale. Il sait peu de choses. Juste qu’il part et que la route n’efface rien. Le chaud, peut-être.</p><p class="block">Ils finiront sous un pommier et ne pourront jamais regretter.</p><p class="block">Il ne leur dira jamais s’ils ont fui le chaud ou le reste.</p></div></div></article><hr class="cut" data-delta=""><article class="entry entry--chronicle" id="j11" data-id="j11" data-kind="chronicle" data-temp="43" data-faille="0" data-date-fiction="15 Juin 2026" data-qualifier=""><header class="entry__head"><span class="entry__date-fiction mono">15 Juin 2026</span><span class="entry__temp-inline mono">43&nbsp;°C</span></header><div class="entry__body"><p class="block"><span class="timestamp">[15.06.2026]</span> <span class="handle">@JulianBugier</span> au 13h de <span class="handle">@France2</span> : “L’Espagne a vécu ses premiers incendies majeurs de la saison ce week-end. Le thermomètre est monté à 43°C à Séville.</p><p class="block">La situation inquiète le gouvernement progressiste espagnol, qui dans une déclaration télévisuelle s’est aussi adressé à ses voisins européens.” Écoutons un extrait du discours de la première ministre espagnole :</p><p class="block">“Chers amis européens, nos scientifiques sont catégoriques. Nous ne sommes qu’au début de cette vague. Nous, Espagnols, avons l’habitude de la chaleur. Mais les températures annoncées, ainsi que la durée de la canicule, risquent de mettre notre pays à rude épreuve.</p><p class="block">Nous devons garder notre calme et anticiper. Anticiper et organiser la solidarité européenne qui a été malmenée ces derniers temps. Nous aiderons nos amis portugais, et appelons toutes les bonnes volontés susceptibles de nous aider à affronter cet événement qui s’annonce exceptionnel.”</p><p class="block"><span class="handle">@JulianBugier</span> poursuit son JT : “Conséquence aussi de cette vague de chaleur, la fermeture de plusieurs écoles insuffisamment isolées pour accueillir les élèves. Reportage de <span class="handle">@MelinaHuet</span>, notre correspondante à Madrid ».</p><p class="block">Un directeur d’école montre le thermomètre qui indique 39°C dans l’une des salles de classe. Il commente : « ce matin, on a pris la décision de renvoyer les élèves chez eux, on ne peut pas les accueillir dans ces conditions. ». Un parent interrogé répond qu’il a dû rester chez lui pour garder ses enfants.</p></div></article><hr class="cut" data-delta="Δ depuis hier : -3 °C"><article class="entry entry--chronicle" id="j12" data-id="j12" data-kind="chronicle" data-temp="40" data-faille="0" data-date-fiction="16 Juin 2026" data-qualifier=""><header class="entry__head"><span class="entry__date-fiction mono">16 Juin 2026</span><span class="entry__temp-inline mono">40&nbsp;°C</span></header><div class="entry__body"><p class="block"><span class="timestamp">[16.06.2026]</span> Répondant à l’Espagne, la France annonce le prêt de lances à incendies très efficaces en eau et de combinaisons de sapeur-pompiers à refroidissement intégré, conçus pour les périodes de sécheresses et de canicules. La porte-parole du gouvernement de préciser avec fierté :</p><p class="block">« Notre pays est prêt à faire face à cette nouvelle vague de chaleur et peut même aider ses voisins grâce aux technologies que nous avons développées ! ». Au même moment dans le Tarn où il fait déjà bien chaud, une lycéenne interpelle <span class="handle">@EmmanuelMacron</span> en marge d’un déplacement :</p><p class="block">“Est-ce que les épreuves du baccalauréat seront annulées, compte-tenu de la canicule ?” « C’est la meilleure excuse que j’ai jamais entendue pour reporter le bac ! » répond le président en souriant.</p><p class="block">Météo France précise dans un communiqué les températures attendues pour les prochains jours à Paris : 31°C dépassés en fin de semaine, entre 36 et 40°C attendus pour la fête de la musique dimanche.</p><p class="block"><span class="handle">@Paloma</span> Moritz republie sur twitter une note de <span class="handle">@RTE</span> et <span class="handle">@MeteoFrance</span> alertant il y a déjà 2 mois des risques pour le réseau électrique d’une potentielle canicule extrême en Juin : hausse de la consommation,en partie liée à la très forte installation de climatisation de mauvaise qualité depuis 2022, très mauvaise disponibilité des différents modes de production bas carbone, tout type confondu, et augmentation des pertes réseau, etc.</p><p class="block">La note souligne le manque d’investissement ces dernières années et envisage le recours à l’effacement et à la sobriété forcée de manière localisée. <span class="handle">@Paloma</span> Moritz de commenter : “Est-ce la raison pour laquelle l’alerte du 1er Juin a été censurée ?”</p><p class="block">Le soir sur <span class="handle">@BFMTV</span>, <span class="handle">@aurore</span> Bergé, présidente du groupe LREM à l’Assemblée, commente l’actualité : « Il ne vous aura pas échappé que le climat de l’Espagne n’est pas celui de la France, et expose davantage nos voisins. Prenons simplement soin de nos aînés et hydratons nous bien ! ». “avec de l’eau bien sûr !” complète le journaliste.</p></div></article><hr class="cut" data-delta=""><article class="entry entry--interior" id="j13" data-id="j13" data-kind="interior" data-temp="" data-faille="1" data-date-fiction="17 Juin 2026" data-qualifier=""><div class="entry__inner"><header class="entry__head"><h2 class="entry__title">Petit personnage</h2><span class="entry__date-fiction mono">17 Juin 2026</span></header><figure class="plate" data-slot="petit-personnage" data-src="assets/illustrations/petit-personnage.webp" style="--aspect:3 / 4;"><div class="plate__frame"><img alt="Pas mentir, minimiser. Matignon, neuf heures." decoding="async"><div class="plate__placeholder"><p class="plate__pending">Illustration à venir</p><p class="plate__subject">Un couloir vide de Matignon, lumière dure, une veste grise rigidie de sueur, sans visage.</p></div></div><figcaption class="plate__caption mono">Pas mentir, minimiser. Matignon, neuf heures.</figcaption></figure><div class="entry__body"><p class="block">Il est neuf heures du matin. Le ciel est d’un bleu parfait, sans nuages, et le soleil est rond et jaune comme celui que les enfants dessinent. Dans un couloir de Matignon, un jeune conseiller attend. Il sue sous sa veste grise. Il devrait l’enlever ; sa chemise colle à son dos, ses aisselles gouttent ; il doit la garder ; il va presque mourir avec ; il se sent piégé dans la veste comme un condamné dans sa cellule, on dirait qu’elle se coud à lui, c’est la sueur qui la coud sur sa peau, bientôt il ne tiendra plus debout mais la veste restera toujours droite et le fera tenir droit,</p><p class="block">comme les marionnettistes redressent leur petit personnage. Petit personnage. Le jeune conseiller s’appelle Paul. Nous sommes le vendredi 12 juin 2027, il est neuf du matin dans un couloir de Matignon, le ciel est d’un bleu parfait et d’ici quelques minutes, Paul va mentir.</p><p class="block block--intrusion" data-rhythm="whisper">Pas mentir, minimiser. Depuis quand tu as autant de scrupules ? Ça a toujours été ça, ton travail. Pas mentir, minimiser.</p><p class="block">Il relit sa fiche, se concentre sur les chiffres, il y en a tellement, et il évite soigneusement les formules rassurantes. Vivre avec, dôme de chaleur, crise passagère, résilience de la nation. Vivre avec, dôme de chaleur, crise passagère, résilience de la nation. Ce qui tambourine dans son crâne, c’est la chaleur aussi, pas vrai ? Pas le doute, pas la honte, pas le sentiment de faire quelque chose de mal ?</p><p class="block block--intrusion" data-rhythm="whisper">Tu parles au pays entier, je sais pas si tu te rends compte, c’est incroyable, c’est...Ça va finir dans les livres d’Histoire, tu sais ça ? Mais si. Tes mots, ceux de la ministre qui te lit, mais tes mots à toi, on en parlera dans les livres d’Histoire dans des siècles. La fille du date de la veille était impressionnée.</p><p class="block">Paul aussi, au début. Maintenant, moins. Tellement, tellement moins.</p><p class="block block--intrusion" data-rhythm="whisper">La résilience de la nation n’est plus à prouver.</p><p class="block">Ce n’est pas vraiment lui qui ment, si ce n’est pas lui qui dit, pas vrai ? S’il écrit ce qu’on lui demande d’écrire, il ne fait qu’obéir, s’il n’obéissait pas, il serait renvoyé, et il aurait encore plus honte, non ? D’avoir eu la chance d’écrire au présent pour les livres d’Histoire, et d’avoir tout gâché.</p><p class="block">Sa veste devient rigide contre son dos. Tellement imbibée de sueur, elle devrait fondre avec lui, mais elle reste droite. Il regarde le ciel parfait par la fenêtre, et c’est comme si son angoisse écrivait dessus.</p><p class="block block--intrusion" data-rhythm="whisper">Quelque chose ne va pas, Paul. Tes mots et le monde ne se ressemblent plus, Paul. Tu redessines le réel, Paul. C’est ça ce que tu fais, dans la vie, changer les contours des choses qui ne te vont pas ? Qui ne leur vont pas, qui ne vont pas, qui ne feront pas plaisir, qui feront même mal - tu changes les choses, ou tu changes notre manière de voir les choses ? La ministre sort de son bureau, et sans le saluer lui prend la fiche des mains. Elle la parcourt des yeux, éponge son front avec un mouchoir de batiste, puis sourit. « Encore du beau travail. »</p><p class="block">Paul s’affaisse contre un mur et ne la voit pas s’éloigner.</p></div></div></article><hr class="cut" data-delta=""><article class="entry entry--chronicle" id="j14" data-id="j14" data-kind="chronicle" data-temp="42" data-faille="0" data-date-fiction="18 Juin 2026" data-qualifier=""><header class="entry__head"><span class="entry__date-fiction mono">18 Juin 2026</span><span class="entry__temp-inline mono">42&nbsp;°C</span></header><div class="entry__body"><p class="block"><span class="timestamp">[16.06.2026]</span> Hier, sur le perron de l’Elysée, la Ministre de la Transition écologique répondait à des journalistes : « Il n’est pas raisonnable d’agiter les peurs dans ce contexte, et je voudrais rassurer tout le monde : il n'y aura pas de black-out général. Profitons du beau temps ! »</p><p class="block"><span class="handle">@Mélanie</span> Taravant au 20h de <span class="handle">@France2</span> : “Après l’Espagne et le Portugal, c’est au tour de l’Italie de voir le thermomètre grimper en flèche. Quelles sont les conséquences pour le pays ? Un reportage à Florence d’<span class="handle">@Anne</span> Donaldini et son équipe.”</p><p class="block">Une voix off raconte : “Pompiers et urgentistes épuisés, services sous tension, c’est une nouvelle épreuve pour le personnel d’urgence de la ville. A l’hôpital Santa Maria Nuova de Florence, la directrice témoigne :</p><p class="block">« On craint que ce soit la crise de trop. On subit cette chaleur comme tout le monde, les patients s’accumulent. La climatisation a lâché hier, on a déprogrammé des opérations et réorganisé les services. On est à bout ». traduit la voix-off.</p><p class="block">La directrice de conclure : “[Un ondata di calore di questa entità non è da prendere alla leggera : è come un nuovo cerchio dell'inferno]. Une vague de chaleur de cette ampleur n’est pas à prendre à la légère : c’est comme un nouveau cercle de l’enfer.”</p><p class="block">Retour sur le plateau avec <span class="handle">@melanietaravant</span>: “En France à présent, pour le début d’une canicule qui s’annonce difficile. Aujourd’hui il a fait 31°C à Paris, 36 à Bordeaux, 32 à Strasbourg. On attend jusqu’à 42 degrés dans la moitié sud du pays ce week-end. 18 départements ont été classés en vigilance orange canicule par <span class="handle">@meteofrance.</span> Pourtant, le gouvernement se veut rassurant. Pensez à bien vous hydrater et à boire au moins 1L et demi d’eau par jour”.”</p><p class="block">Sur twitter, les météorologues sortent des cartes de plus en plus préoccupantes et font des hypothèses sur l’évolution à 10 jours : plume, chalumeau, dôme de chaleur ? Marmite de <span class="hashtag">#Gargamel</span> leurs répondent des internautes taquins.</p></div></article><hr class="cut" data-delta=""><article class="entry entry--chronicle" id="j15" data-id="j15" data-kind="chronicle" data-temp="" data-faille="0" data-date-fiction="19 Juin 2026" data-qualifier=""><header class="entry__head"><span class="entry__date-fiction mono">19 Juin 2026</span></header><div class="entry__body"><p class="block">110 maires fraîchement (ré)élus signent une tribune dans laquelle ils en appellent à un « État-résilience » face au changement climatique. « Cette canicule doit servir d’électrochoc pour nous préparer à d’autres événements plus extrêmes ». Les maires invitent l’Etat à « mener une politique d’adaptation à la hauteur des enjeux, en lien avec les collectivités ».</p><p class="block">Parmi les signataires : <span class="handle">@Anne_Hidalgo</span>, <span class="handle">@Gregorydoucet</span>, <span class="handle">@PierreHurmic</span>, <span class="handle">@JeanneBarsegh</span>, mais aussi <span class="handle">@BeyaertMartial</span>, maire de Grande Synthe, la ville qui avait poursuivi en 2018 l’Etat pour inaction face au changement climatique.</p><p class="block">Au micro de <span class="handle">@BFMTV</span>, <span class="handle">@L_Moncondhuy</span>, réélue à Poitiers et co-signatrice, évoque l’urgence à agir : « Les maires sont en première ligne mais nous avons aussi besoin d’un « Etat- résilience » qui prenne ses responsabilités.</p><p class="block">Il y a quatre ans, la juridiction administrative a condamné l’Etat pour son inaction face au changement climatique, et depuis, presque rien n’a bougé.</p><p class="block">Avec mes collègues maires, nous avons voulu tirer une nouvelle fois la sonnette d’alarme et espérons que cette canicule servira d’électrochoc. »</p></div></article><hr class="cut" data-delta=""><article class="entry entry--chronicle" id="j16" data-id="j16" data-kind="chronicle" data-temp="" data-faille="0" data-date-fiction="20 juin 2026" data-qualifier=""><header class="entry__head"><span class="entry__date-fiction mono">20 juin 2026</span></header><div class="entry__body"><p class="block">Au micro de <span class="handle">@BFMTV</span>, <span class="handle">@cassouman40</span> revient sur la tribune des 110 maires : « La dernière décennie est probablement la plus chaude depuis 100 000 ans. Le dire n’est pas être alarmiste, c’est juste regarder la vérité en face.</p><p class="block">« Aucun climatologue n’est aujourd’hui surpris par ce qui se produit : nous entrons dans une phase où l’exceptionnel va devenir la norme, où les événements extrêmes vont devenir de</p><p class="block">plus en plus fréquents. Le coût humain et économique de l’inaction serait insoutenable : il est temps d’écouter ceux qui alertent depuis trente ans ».</p><p class="block"><span class="handle">@Airparif</span> annonce un pic de pollution à l’ozone favorisé par l’augmentation des températures.<span class="handle">@Paris</span> annonce la mise en place de la circulation alternée, et la gratuité du stationnement résidentiel.</p></div></article><hr class="cut" data-delta=""><article class="entry entry--chronicle" id="j17" data-id="j17" data-kind="chronicle" data-temp="38" data-faille="0" data-date-fiction="22 Juin 2026" data-qualifier=""><header class="entry__head"><span class="entry__date-fiction mono">22 Juin 2026</span><span class="entry__temp-inline mono">38&nbsp;°C</span></header><div class="entry__body"><p class="block"><span class="timestamp">[22.06.2026]</span> « 1 mort dans le canal pour la fête de la musique » titre Le Parisien. La fête a commencé tôt dans l’après-midi et par ciel bleu. Elle s'est finie à l’ombre des urgences pour de nombreux jeunes, dans le meilleur des cas.</p><p class="block">Le hasard du calendrier a fait tomber cette fête de la musique un dimanche, pour la journée la plus longue de l’année. Malgré les 38°C vers 14h, à l'ombre, l’ambiance était très bon enfant autour du canal St Martin : batailles d’eau, glaces à gogo.</p><p class="block">En fin de journée, alors que la température ne descendait que peu, la police a dû rappeler à l’ordre plusieurs groupes qui sautaient dans le canal, malgré les avertissements en ligne de la Ville : la baignade est interdite pour de bonnes raisons.</p><p class="block">Les réseaux sociaux pointés du doigt :</p><p class="block">« Vers 21h il y a eu beaucoup de bruit, comme le début d’une ola. Et puis ça a commencé à sauter, beaucoup de monde. Les flics étaient dépassés. Je gardais les téléphones de mes potes et je balançais ça sur les réseaux, j’ai jamais eu autant de likes ! » raconte Sarah, 16 ans. « On a vu le hashtag <span class="hashtag">#tousaucanal</span>, on s’est dit que c’était une manière de se retrouver et de fêter l’été ; on ne pensait pas que ça dégénérerait » témoigne Jean.</p><p class="block">Résultat : un mort, d’après la Préfecture : « Nicolas , 22 ans, est décédé. Les premiers éléments de l’enquête tendent à montrer qu’il s’est retrouvé prisonnier d’algues au fond de l’eau, sans doute pendant le mouvement de foule aquatique. Son corps inerte est remonté à la surface vers 22h30. »</p><p class="block">Des urgences débordées :</p><p class="block">Alcool, drogues, très forte chaleur et déshydratation : le cocktail était parfait pour que les pompiers et les urgences connaissent une soirée extraordinaire, quand bien même les effectifs sont habituellement en alerte pour la fête de la musique.</p><p class="block">« Il faisait plus chaud dans certaines salles qu’à l’extérieur. J’ai eu honte mais nous avons du organiser un système d’attente dans la cour arborée de l’hôpital » témoigne la Dr Kemsil, responsable d’un service d’urgence parisien. « Je suis inquiète pour les prochains jours ».</p><p class="block">Article de <span class="handle">@m_brandely</span></p></div></article><hr class="cut" data-delta="Δ depuis hier : +12 °C"><article class="entry entry--chronicle" id="j18" data-id="j18" data-kind="chronicle" data-temp="50" data-faille="0" data-date-fiction="23 Juin 2021" data-qualifier=""><header class="entry__head"><span class="entry__date-fiction mono">23 Juin 2021</span><span class="entry__temp-inline mono">50&nbsp;°C</span></header><div class="entry__body"><p class="block"><span class="timestamp">[23.06.2026]</span> : « Canicule, Paris étouffe » titre <span class="handle">@Le_Parisien</span> aujourd’hui. La barre des 40°C a été franchie pour la première fois, un record pour un mois de juin. « Jusqu’à 50 degrés attendus pour la semaine prochaine ».</p><p class="block"><span class="handle">@NPolony</span>, invitée sur <span class="handle">@France2</span> pour une édition spéciale, commente : « aujourd’hui, des écoles ont dû fermer car elles n’étaient pas suffisamment équipées pour accueillir les enfants. Les services d’urgence déjà éprouvés en temps normal, sont surchargés, alors même qu’on nous annonce des températures en hausse pour les jours à venir.</p><p class="block">Tout cela était écrit : les conséquences du réchauffement climatique sont documentées depuis plus de 30 ans. Il y a 4 ans en 2022, nous avons eu une première alerte, avec déjà une canicule en juin. L’an dernier, encore, des records de température ont été battus, avec plus de 40°C en Bretagne.</p><p class="block">Qu’a fait le gouvernement depuis l’alerte lancée par nos voisins italiens et espagnols la semaine dernière ?</p><figure class="plate" data-slot="rues-vides" data-src="assets/illustrations/rues-vides.webp" style="--aspect:16 / 9;"><div class="plate__frame"><img alt="Plus personne n'ose s'aventurer. Jusqu'à 50 degrés." decoding="async"><div class="plate__placeholder"><p class="plate__pending">Illustration à venir</p><p class="plate__subject">Une avenue parisienne totalement déserte en plein midi à 50°C, blanc-braise aveuglant.</p></div></div><figcaption class="plate__caption mono">Plus personne n'ose s'aventurer. Jusqu'à 50 degrés.</figcaption></figure><p class="block">Depuis 10 ans, Emmanuel Macron nous explique que le problème écologique doit se régler à l’échelle européenne ». Or, l’investissement dans l’école, dans l’hôpital, dans les infrastructures pour nous adapter au changement climatique, tout ça est à la main du gouvernement. A la faveur de cette crise, nous redécouvrons les vertus de l’Etat-nation, de cet « Etat-résilience » comme l’ont appelé les 110 maires la semaine dernière dans leur tribune.</p><p class="block">Sur <span class="handle">@CNEWS</span>, les « spécialistes » réunis autour de <span class="handle">@SoMabrouk</span> déplorent le traitement médiatique de la canicule : « on parle matin, midi et soir de la pluie et du beau temps - enfin plutôt du beau temps [rires], comme s’il n’y avait pas de sujets plus importants : la crise économique, alimentaire, les tensions communautaires dans certains quartiers... » déplore Jean-Claude Dassier.</p><p class="block">« C’est du bourrage de crâne », surenchérit <span class="handle">@ELevyCauseur</span>, essayiste et experte d’un jour sur les questions climatiques. « On domestique la population. »</p></div></article><hr class="cut" data-delta=""><article class="entry entry--interior" id="j19" data-id="j19" data-kind="interior" data-temp="" data-faille="1" data-date-fiction="24 juin 2026" data-qualifier=""><div class="entry__inner"><header class="entry__head"><span class="entry__date-fiction mono">24 juin 2026</span></header><figure class="plate" data-slot="supermarche" data-src="assets/illustrations/supermarche.webp" style="--aspect:4 / 3;"><div class="plate__frame"><img alt="Le dernier endroit froid. Suivre les consignes des gens qui n'ont rien fait." decoding="async"><div class="plate__placeholder"><p class="plate__pending">Illustration à venir</p><p class="plate__subject">Le rayon des glaces d'un supermarché climatisé, néons froids, carrelage, le seul îlot de froid.</p></div></div><figcaption class="plate__caption mono">Le dernier endroit froid. Suivre les consignes des gens qui n'ont rien fait.</figcaption></figure><div class="entry__body"><p class="block">Il faut passer du temps dans les espaces climatisés. Il faut boire beaucoup d’eau et passer du temps dans les espaces climatisés. Près de chez lui, Sofiane n’a qu’un espace climatisé et il vend beaucoup d’eau.</p><p class="block">C’est le supermarché de son enfance, de son toujours en fait, il est né, il a grandi, il vit au même endroit depuis toujours. Dans ce supermarché, il a tiré sur les jupes de sa mère pour qu’elle achète les bonbons qui se trouvent au niveau de la caisse. Il a insisté pour pousser le caddie trop lourd, il a couru dans les allées, il a loucher longuement sur les trois jeux vidéos présentés à l’entrée, choisi avec amour sa première bouteille d’alcool fort, trouvé moins pratique les nouvelles caisses automatiques, empêché son petit frère de monter sur le cheval de manège de la sortie et aujourd’hui, il s’y balade. Comme dans un parc. C’est comme dans un parc. Il plisse les yeux pour que les étagères, les rayonnages prennent la forme d’arbres et de buissons, il se persuade que l’odeur de viande ressemble à celle des fleurs. Autour de lui, il voit les gens faire pareil. Chercher le grand frisson au rayon surgelés, s’habituer aux néons comme à un nouveau soleil. Il ne sait plus vraiment ce que ça fait d’avoir froid. Il sent sa température corporelle baisser légèrement, peut-être au milieu de sa promenade, mais il n’a jamais froid. C’est tellement fort, la sensation de sa peau qui ne pique plus devant les grands frigos, qu’il prend peur parfois. Peur que sa peau ne connaisse plus jamais rien d’autre, peur qu’on ne doive plus jamais porter de pulls, peur de vivre pour l’éternité avec sa peau à nue parce que tout le reste la chaufferait trop.</p><p class="block block--intrusion" data-rhythm="slab">Tu penses à quoi ?</p><p class="block">Son petit frère s’est arrêté devant le rayons des glaces.</p><p class="block block--intrusion" data-rhythm="slab">T’as l’air bizarre.</p><p class="block">Un monde sans froid. Un monde qui ne cessera jamais de chauffer jusqu’à l’implosion.</p><p class="block block--intrusion" data-rhythm="slab">Eh oh je-te-parle. Sofiane. Sofiane, t’es nul.</p><p class="block">Et il rit, extrêmement fort, il vide tout l’air de ses petits poumons. Le rire résonne sous le grand hangar et Sofiane frissonne. Ça sera ça maintenant le froid, le rire d’un enfant qui vous rentre sous la peau. En vrai tu pues de ouf. Tu m’achètes la glace ? On passera prendre du déo après.</p><p class="block">Et le petit rit encore plus fort. Sofiane le regarde. Faut peut-être rire en fait. Pas que ça devienne drôle, pas promis non plus que ça sera de plus en plus drôle, la vie sur ce caillou composé d’eau qui flotte dans l’univers, mais rire et regarder fixement le visage des gens qu’on aime, c’est peut-être la seule chose à faire. Pour tout supporter. Ça et</p><p class="block block--intrusion" data-rhythm="slab">Passez du temps dans les espaces climatisés. Buvez beaucoup d’eau et passez du temps dans les espaces climatisés</p><p class="block">Suivre les consignes des gens qui n’ont rien fait.</p></div></div></article><hr class="cut" data-delta=""><article class="entry entry--chronicle" id="j20" data-id="j20" data-kind="chronicle" data-temp="" data-faille="0" data-date-fiction="25 Juin 2026" data-qualifier=""><header class="entry__head"><span class="entry__date-fiction mono">25 Juin 2026</span></header><div class="entry__body"><p class="block"><span class="timestamp">[23.06.2026]</span> « Conséquence aussi de cette canicule, la flambée du prix du blé. L’Europe est- elle au bord de la pénurie Benjamin ? » Au lendemain d’une augmentation sans précédent du cours du blé, le mot « pénurie » est pour la première fois lâché dans tous les JT.</p><p class="block">Difficile de vous répondre Anne-Claire mais ce qui est sûr, c’est que la canicule a aggravé les tensions sur les produits alimentaires : + 25% sur le maïs, +30% sur le blé depuis hier, à la suite des annonces de la Russie et de la Turquie d’interrompre leurs exportations.</p><p class="block">« - Comment expliquer cette explosion Benjamin ? - Alors, plusieurs raisons à cela, comme on va le voir sur cette infographie. D’abord, le contexte compliqué, lié aux mauvaises récoltes de la Russie, qui avait déjà mis sous tension le marché du blé depuis plusieurs semaines. »</p><p class="block">La canicule, ensuite, qui a frappé l’Espagne, maintenant la France, et dans quelques jours l’Allemagne : au total, on s’attend à une baisse des récoltes de 30% à 40% dans les trois pays.</p><p class="block">Et puis enfin la réaction de nos voisins, comme le Royaume-Uni, il y a plusieurs jours, la Turquie et la Russie aujourd’hui, qui ont choisi de limiter volontairement leurs exportations, officiellement pour garantir la sécurité alimentaire de leur propre population. »</p><p class="block">En réaction, une partie de la gauche dénonce « la spéculation » et appelle à un « blocage des prix ».</p><p class="block">Les cadres de Renaissance, mettent en cause le rôle joué par la Russie, accusée d’utiliser le blé comme une arme pour affaiblir l’Europe et d’en profiter au passage pour faire grimper les prix :</p><p class="block">« La gauche incrimine le gouvernement ; elle ferait mieux de demander des comptes à l’ami de M. Mélenchon, M. Poutine » assène Stanislas Guérini.</p><p class="block">Le gouvernement tente quant à lui de rassurer : « Il ne suffit pas de multiplier les incantations, lance le Ministre de l’Agriculture au micro d’Apolline de Malherbe ; il faut agir. C’est ce que nous faisons : avec le chèque panier repas que nous avions lancé avant la canicule, avec les mesures de soutien aux agriculteurs, et en travaillant avec nos partenaires européens, pour mettre en place une politique d’achats coordonnée. Je serai dès cet après-midi à Bruxelles pour échanger avec mes homologues et apporter des solutions. »</p><p class="block">Hubert Julien-Laferrière, député écologiste interrogé sur LCP, pointe le manque d’anticipation et la naïveté du gouvernement : « A chaque problème, la réponse du gouvernement se limite à proposer un chèque. Pourtant, le risque était connu, mais le gouvernement n’a rien fait pour l’anticiper en sécurisant d’autres sources d’approvisionnement. Il n’a rien retenu des crises antérieures et se retrouve sous la coupe de pays, comme la Russie, qui en profitent. »</p></div></article><hr class="cut" data-delta=""><article class="entry entry--chronicle" id="j21" data-id="j21" data-kind="chronicle" data-temp="" data-faille="0" data-date-fiction="26 Juin 2026" data-qualifier=""><header class="entry__head"><span class="entry__date-fiction mono">26 Juin 2026</span></header><div class="entry__body"><p class="block"><span class="timestamp">[26.06.2026]</span> Trending sur Tiktok après une première semaine de canicule, le challenge <span class="hashtag">#VaTeFaireCuireUnOeuf</span>. Il consiste à casser un œuf sur les surfaces les plus improbables pour voir s’il cuit, sur fond d’un remix de Nelly “It's getting hot in here”, remis au goût du jour.</p></div></article><hr class="cut" data-delta=""><article class="entry entry--chronicle" id="j22" data-id="j22" data-kind="chronicle" data-temp="45" data-faille="0" data-date-fiction="27 Juin 2026" data-qualifier=""><header class="entry__head"><span class="entry__date-fiction mono">27 Juin 2026</span><span class="entry__temp-inline mono">45&nbsp;°C</span></header><div class="entry__body"><p class="block"><span class="timestamp">[27.06.2026]</span> C’est la panique générale à Montparnasse. De nombreuses personnes, y compris des familles, essaient de fuir Paris depuis hier, après cette première semaine de canicule. Un reportage de Chloé Berthod pour BFM TV.</p><p class="block">“On a pas le choix. Il fait trop chaud chez nous, il fait trop chaud dans la classe de Mathilde. Elle est scolarisée au collège Louise Michelle dans le 10eme et des camarades de classe sont tombés dans les pommes jeudi.” témoigne une maman.</p><p class="block">Son compagnon de compléter : “Les billets nous ont coûté un bras. En plus le site SNCF était en panne vendredi midi. Un ami dans la sécurité informatique m’a dit que des serveurs déconnaient à cause de problèmes de refroidissement.”</p><p class="block">Des images de la gare se succèdent au montage : enfants endormis sur des bagages, adultes impatients, des éventails et des brumisateurs portatifs, tableau des départs remplis de “en retard”.</p><p class="block">Nous tombons par hasard sur une maîtresse d’école, qui accepte de témoigner anonymement : “ J’ai jeté l’éponge. Je ne dormais pas la nuit, je mettais 30min de plus à</p><p class="block">venir au travail à cause des ralentissements sur le RER, et en classe c’était l’horeur. J’adore mes petits, j’ai tout essayé. J’ai essayé d’acheter des brumisateurs ou une clim’ mais il n’y en a plus nul part, je leur ai fait fabriquer des éventails... j’ai même tenté de scotcher des couvertures de survie à l’envers sur les fenêtres, comme j’avais vu sur un forum de prof.</p><p class="block">C’est mission impossible. La cours Oasis est trop petite pour recevoir toutes les classes, la préfecture n’a pas voulu qu’on donne cours dans le petit parc d’à côté, à cause de vigipirate.</p><p class="block">On a plus peur d’une bombe fictive que d’une bombe climatique qui est bien là. Franchement on est laissé à l’abandon et je ne veux pas qu’il arrive quelque chose à mes ptits choux. J’ai posé ma démission, on est abandonné.” conclut-elle, les larmes aux yeux.</p><p class="block">“Que se passe-t-il pour les enfants dont les parents ne peuvent pas partir dès aujourd’hui ou prendre des vacances ?” “Je ne sais pas. Je, je... je dois prendre mon train. Bon courage à toutes et tous” dit-elle en partant.</p><p class="block">En même temps sur <span class="handle">@CNEWS</span>, des images d’un supermarché dévalisé dans le 18eme arrondissement sont diffusées en boucle et commentées. « Des images qu’on n’aurait jamais cru possibles ici, en France. Tout à l’heure un passant nous a raconté avoir vu plusieurs personnes en venir aux mains pour avoir une chance d’acheter les dernières bouteilles d’huile et paquets de pâtes encore en rayons. ». « Sur toutes les bouches, un mot, celui de « pénurie » après la nouvelle hausse aujourd’hui du prix du blé, même si le gouvernement a tenu à rassurer une nouvelle fois pour contenir la panique. » Le record de Paris doit être battu demain dimanche, où on attend 45°C.</p></div></article><hr class="cut" data-delta=""><article class="entry entry--interior" id="j23" data-id="j23" data-kind="interior" data-temp="" data-faille="1" data-date-fiction="28 Juin 2026" data-qualifier=""><div class="entry__inner"><header class="entry__head"><h2 class="entry__title">Le baron</h2><span class="entry__date-fiction mono">28 Juin 2026</span></header><figure class="plate" data-slot="le-baron" data-src="assets/illustrations/le-baron.webp" style="--aspect:3 / 4;"><div class="plate__frame"><img alt="Fallait voir avec le baron Haussmann. Le zinc, c'est pas moi." decoding="async"><div class="plate__placeholder"><p class="plate__pending">Illustration à venir</p><p class="plate__subject">Une chambre de bonne haussmannienne sous les toits de zinc, un rideau brun troué, draps humides.</p></div></div><figcaption class="plate__caption mono">Fallait voir avec le baron Haussmann. Le zinc, c'est pas moi.</figcaption></figure><div class="entry__body"><p class="block">Le propriétaire avait prévenu.</p><p class="block block--intrusion" data-rhythm="slab">L’été ? Ah ça, l’été il peut faire un peu chaud oui mais ça, ça,</p><p class="block">Il avait ri, avec ses joues épaisses que le vin du déjeuner avait colorié en rouge.</p><p class="block block--intrusion" data-rhythm="slab">Ça, fallait voir avec la baron Haussmann, hein ? Le zinc sur le toit, c’est pas moi, c’est Haussmann. Hahahaha.</p><p class="block">Hahahah. Elle a acheté un ventilateur.</p><p class="block block--intrusion" data-rhythm="slab">Mais vous ouvrez la fenêtre, hein, vous ouvrez la fenêtre, aux heures froides attention, et puis, vous mettez le rideau, ça ira très bien.</p><p class="block">Elle avait jeté un coup d’oeil au tissu brun, grossier et troué qui pendait sur la tringle devant la seule fenêtre du studio.</p><p class="block block--intrusion" data-rhythm="slab">Hahahaha.</p><p class="block">Elle a acheté de nouveaux rideaux.</p><p class="block block--intrusion" data-rhythm="slab">Ah mais non, lui avait dit un oncle un jour, il faut protéger la fenêtre des rayons directement, d i - r e c - t e - m e n t Ah.</p><p class="block block--intrusion" data-rhythm="slab">Avec des volets.</p><p class="block">Pas de volets.</p><p class="block block--intrusion" data-rhythm="slab">Ah mais ça, fallait voir avec le baron, hein, hahahaha.</p><p class="block">Ça fait deux semaines qu’elle dort dans sa propre sueur, qu’elle ne se douche qu’à l’eau glacée, qu’elle laisse son canapé-lit ouvert parce qu’elle n’a plus la force de le plier et de le déplier chaque soir et chaque matin. Le peu de mètres carrés qu’elle loue se sont réduits comme peau de chagrin. Quand elle ne travaille pas, elle passe son temps dans les musées, les cinémas et les galeries commerçantes pour avoir de l’air frais, parce qu’elle ne peut plus utiliser son ventilateur. Quand elle doit rentrer chez elle, elle se met à pleurer comme une petite fille qui ne veut pas aller à l’école, mais ses larmes sèchent vite contre ses joues. Elle se dit qu’elle aurait pu faire ses études dans une ville qui l’aurait logé ailleurs que dans un placard du baron. Mais tout le pays est tellement construit comme une pyramide, tout converge vers un seul point, et quand elle pense à ça, elle se dit que l’image est parfaite pour ce moment précis. Les pyramides sont des tombeaux, aussi.</p><p class="block">Allongée sur ses draps humides, elle essaie de penser à tous les autres, parce qu’ils sont 67 millions à suer. Normalement. Son propriétaire vit dans une villa au bord de l’océan, mais il doit avoir chaud lui aussi, non ? Dites moi, dites moi qu’il crève de chaud. Dites moi qu’il y a des torts que la Nature redresse. L’aube, la nuit, le crépuscule, les heures froides ont disparu. Et dans son lit, elle se met à faire de drôles prières. Elle cherche la présence de son pays dans sa chambre de bonne, elle veut se sentir comme une particule, un atome, la cellule d’un grand corps collectif.</p><p class="block">Par moments elle se dit que ce n’est pas la chaleur qui l’étouffera, mais la solitude.</p><p class="block block--intrusion" data-rhythm="slab">Ah mais ça ! Fallait voir avec le baron.</p></div></div></article><hr class="cut" data-delta=""><article class="entry entry--chronicle" id="j24" data-id="j24" data-kind="chronicle" data-temp="" data-faille="0" data-date-fiction="29 Juin 2026" data-qualifier=""><header class="entry__head"><span class="entry__date-fiction mono">29 Juin 2026</span></header><div class="entry__body"><p class="block"><span class="timestamp">[29.06.2026]</span> “Ils pensaient partir en vacances, ils sont réquisitionnés à l’hôpital.” peut-on lire sous la plume d’<span class="handle">@Audrey</span> Garric. Le gouvernement a décidé dans l’urgence de faire appel à tous les étudiants des filières du soin pour aider dans les hôpitaux.</p><p class="block">La mesure est prise avec beaucoup de circonspection, comme par ce médecin : “On a besoin de moyens pour arrêter l’effondrement de notre système de soins, de climatisations, de brumisateurs, de personnels qualifiés pour faire face aux urgences, pas de bébés pharma ou kiné.”</p><p class="block">Dans cet autre hôpital, la climatisation ne fonctionne plus : “ça fait des années que j’alerte la direction que la clim’ n’est pas faite pour des températures trop élevées. On m’a dit “on verra”. Et bah c’est tout vu” déclare le responsable de la maintenance.</p><p class="block">“J’ai passé la semaine sur le toit à arroser les groupes froids pour qu’ils durent le plus longtemps possible, mais bon, ça a fini par péter...". Résultat, plus de climatisation, y compris au bloc opératoire.</p><p class="block">“Nous déprogrammons le maximum d'opérations. Nous ne pouvons rediriger les urgences vers les hôpitaux voisins puisqu’ils sont surchargés. Nous avons dû inventer dans la nuit un protocole pour les urgences que nous devons traiter.” nous explique la docteur Léa Bazin, lugubre :</p><p class="block">“Le pire est à venir.” Le syndicat SUD-Santé de l’APHP déclare quant à lui que “cette mesure est à l’image du gouvernement : catastrophique” et d’interpeller “qui va être responsable des morts créés par les erreurs de ces jeunes qu’on forme au front ?”</p><p class="block">Le syndicat incrimine également la rémunération des étudiants, inférieure à 500€ : « on comble le manque de personnel en mobilisant des jeunes qu’on paie à peine 3€ de l’heure. Ils seront payés pour tenir la main des mourants ».</p><p class="block">Le gouvernement appelle quant à lui les Français à limiter leur consommation d’électricité. C’est une première en été, alors que les appels à “la responsabilité énergétique” sont devenus un classique des hivers depuis 2022.</p><p class="block"><span class="handle">@Nicolas</span> Golberg, expert énergie de tweeter : “c’est pas ça qui va régler les problèmes de clim’ dans les hôpitaux !”</p></div></article><hr class="cut" data-delta=""><article class="entry entry--chronicle" id="j25" data-id="j25" data-kind="chronicle" data-temp="50" data-faille="0" data-date-fiction="30 Juin 2026" data-qualifier=""><header class="entry__head"><span class="entry__date-fiction mono">30 Juin 2026</span><span class="entry__temp-inline mono">50&nbsp;°C</span></header><div class="entry__body"><p class="block"><span class="timestamp">[30.06.2026]</span> “50°C”. L’annonce des 50°C attendus à Paris pour vendredi fait l’effet d’une bombe. « Je ne pensais pas qu’on pourrait dépasser les 44°C des Jeux Olympiques ! En juin ! On va juste essayer de survivre. » témoigne un passant.</p><p class="block">Sur Twitter, les <span class="hashtag">#Gargamel</span> <span class="hashtag">#Fuyons</span> <span class="hashtag">#OnVaCramer</span> ont la côte. Plus tard dans la journée apparaît aussi <span class="hashtag">#OnVaToutCramer</span>. Au JT du soir sur FR3 IDF, une voix off commente :</p><p class="block">« Il n’aura fallu que quelques heures pour constater les premiers effets de l’annonce des 50°C à venir dans la capitale, puisqu’une nouvelle vague de parisiens a pris la route pour fuir “la canicule du siècle” ».</p><p class="block">Au volant de son véhicule, cet automobiliste confesse avoir bravé la mesure de circulation alternée, en vigueur depuis la semaine dernière : « on ne veut pas se retrouver pris au piège ; s’il faut payer l’amende, on la paiera, mais on n’a pas le choix ».</p><p class="block">« Conséquence de cet exode massif : un encombrement majeur du circuit routier, d’autant plus perturbé que des tronçons de voies ont été endommagées par endroits du fait de la canicule : l'asphalte s’est déformé sur certaines portions d’autoroute, impraticables depuis plusieurs jours déjà.».</p><figure class="plate" data-slot="montparnasse" data-src="assets/illustrations/montparnasse.webp" style="--aspect:16 / 9;"><div class="plate__frame"><img alt="Une nouvelle vague de Parisiens a pris la route. #Fuyons." decoding="async"><div class="plate__placeholder"><p class="plate__pending">Illustration à venir</p><p class="plate__subject">Le hall et les quais d'une gare bondée à l'annonce des 50°C, foule dense vue de dos, exode.</p></div></div><figcaption class="plate__caption mono">Une nouvelle vague de Parisiens a pris la route. #Fuyons.</figcaption></figure><p class="block">Un autre reportage fait le point sur les pénuries : “Envolée des prix, problèmes de logistique, difficulté à se fournir en matière première : les supermarchés n’arrivent plus à suivre et certains rayons restent vides.”</p><p class="block">“Je n’ai plus d’huile, je manque de certains légumes depuis 10 jours. J’ai eu le droit à ma première bagarre entre clients aujourd’hui. J’ai vu que c’était arrivé ailleurs en France dans des quartiers plus pauvres, avec des émeutes, mais ici... je ne m’y attendais pas !”</p><p class="block">Le CAC40 passe sous la barre des 4000 points, qui avait été frôlée il y a 6 ans, à l’occasion de la crise du Covid.</p></div></article><hr class="cut" data-delta=""><article class="entry entry--interior" id="j26" data-id="j26" data-kind="interior" data-temp="" data-faille="1" data-date-fiction="1er Juillet 2026" data-qualifier="Matin"><div class="entry__inner"><header class="entry__head"><h2 class="entry__title">Brève — Yum yum yum</h2><span class="entry__date-fiction mono">1er Juillet 2026 · Matin</span></header><div class="entry__body"><p class="block">Taha se réveille tôt pour quelqu’un qui commence à 10h, mais il a près d’une heure et demi de transport. Ça ne le dérange pas trop, il dort, il lit, il joue à des jeux, c’est un moment pour lui avant la frénésie de sa journée, et puis, il est toujours à l’heure...Ah non.</p><p class="block">Pas aujourd’hui.</p><p class="block">Sur le quai, une foule grouille. Les gens parlent fort, entre eux ou au téléphone, ils attendent les bras croisés, s’assoient sur leurs sacs parce qu’il n’y a plus de sièges disponibles. Certains cherchent un contrôleur, d’autres veulent rebrousser chemin. Tous emplissent la gare de bruit et de fureur. Les panneaux clignotent en orange, mais ils n’affichent rien. Taha appelle son responsable.</p><p class="block block--intrusion" data-rhythm="crowd">Mais merde, c’est pas possible ça, tu peux pas me faire ça, je fais comment moi ? J’ouvre la cuisine tout seul ? Mais merde putain, bah oui la canicule, d’accord, mais je la contrôle pas moi, la canicule, d’accord ?</p><p class="block">Taha non plus. Il inspire profondément, et lutte contre le sentiment d’angoisse qui se love au fond de son ventre.</p><p class="block block--intrusion" data-rhythm="crowd">Tu pourras être là quand ?</p><p class="block">Taha ne sait pas dire. Il peut essayer de demander mais</p><p class="block block--intrusion" data-rhythm="crowd">Bah fais ça, ouais. Fais ça. Renseigne-toi.</p><p class="block">Taha reste seul au bout du fil. Il demande à l’homme à côté de lui s’il sait quelque chose sur le train.</p><p class="block block--intrusion" data-rhythm="crowd">J’ai l’air de bosser ici ?</p><p class="block">Bon. Taha se met à errer sur le quai. Il étudie tous les visages qu’il rencontre, cherche derrière les mines déconfites, les grimaces, les sourcils froncés, les gros yeux et les larmes de panique, il cherche quelqu’un qui pourra lui répondre. Il entend deux femmes</p><p class="block block--intrusion" data-rhythm="crowd">Il viendra jamais, le train, ah mais non, mais non Mais j’ai entendu</p><p class="block block--intrusion" data-rhythm="crowd">Ah certainement pas. Ils disaient trente minutes</p><p class="block block--intrusion" data-rhythm="crowd">Ah mais jamais jamais ils mentent, les rails, les rails sont complètement tordus Non ?</p><p class="block block--intrusion" data-rhythm="crowd">Ah bah si, total, la totale, je vous assure, ma belle-soeur est un peu plus haut sur la ligne, oui J’avais vraiment entendu dire trente minutes.</p><p class="block block--intrusion" data-rhythm="crowd">Je viens de l’avoir au téléphone je suis formelle les rails sont tordus</p><p class="block">Et Taha voit la femme se dresser de toute sa hauteur, toute relative, et crier à pleins poumons</p><p class="block block--intrusion" data-rhythm="crowd">LE TRAIN NE VIENDRA PAS LES RAILS SONT TORDUS</p><p class="block">Rien de plus, et la foule qui s’était tue, repart en grouillements, en bruit et en fureur. Taha ne sait pas quoi faire de l’information. Le corps immense de la foule se met à danser sur le quai, s’approche du vide, revient au centre, se colle aux barrières, aux parois, aux bancs. Des pans entiers de ce tissu humain se déchirent, des gens partent, d’autres arrivent, certains se mettent à essayer de courir, d’autres les arrêtent. La musique, ce sont les enfants qui pleurent, les personnes âgées qui couinent, tous qui s’énervent, se disputent, respirent mal. Taha sent l’angoisse le dévorer bout par bout, cellule par cellule. Ce que la sueur laisse, l’angoisse le prend. Yum yum yum</p><p class="block block--intrusion" data-rhythm="crowd">LES RAILS SONT TORDUS</p><p class="block">L’écho se répète, il paraît qu’un contrôleur a confirmé, où ? quand ? il est passé par là ! non il était ici</p><p class="block block--intrusion" data-rhythm="crowd">JE L’AI VU</p><p class="block">Taha a la tête qui tourne, yum yum yum. Il faut qu’il appelle</p><p class="block block--intrusion" data-rhythm="crowd">Je la contrôle pas la canicule</p><p class="block">Il l’avait déjà menacé une fois</p><p class="block block--intrusion" data-rhythm="crowd">Des gars comme toi, y en a pleins les rues, pleins les rues mon petit, alors tu rates un truc, tu entends, un truc</p><p class="block block--intrusion" data-rhythm="crowd">Yum yum yum</p><p class="block block--intrusion" data-rhythm="crowd">LES RAILS SONT TORDUS</p><p class="block block--intrusion" data-rhythm="crowd">Et tu fous plus jamais les pieds ici à nouveau, c’est clair ?</p><p class="block">Il a l’impression que le monde s’arrête de tourner. Ou c’est son coeur qui cesse de battre, la terre qui se dérobe sous ses pieds, il ne sait pas mais tout, d’un coup, devient trop. Et pourtant insuffisant pour lui rappeler ce qu’il fait là. Déraciné et brûlé par le soleil d’ailleurs</p><p class="block block--intrusion" data-rhythm="crowd">Yum yum yum</p><p class="block">Taha déchire quelques morceaux du grand tissu pour sortir.</p></div></div></article><hr class="cut" data-delta=""><article class="entry entry--chronicle" id="j27" data-id="j27" data-kind="chronicle" data-temp="" data-faille="0" data-date-fiction="1er Juillet 2026" data-qualifier="Soir"><header class="entry__head"><span class="entry__date-fiction mono">1er Juillet 2026 · Soir</span></header><div class="entry__body"><p class="block"><span class="timestamp">[29.06.2026]</span> Le président de la République s’adresse à la Nation sur toutes les chaînes : « Une fois encore, la France est durement éprouvée. Nous devons faire bloc ».</p><p class="block">Le président invite les Français à faire preuve de « calme » et de « solidité » : « Rien ne serait pire que la panique. En cette période troublée, nous devons demeurer attachés au lien indéfectible qui fait de nous une nation unie ».</p><p class="block">Il en appelle à la responsabilité des Français pour « traverser la tempête » : « Notre réseau électrique est mis à rude épreuve. Au moment où la canicule s’abat sur notre pays, tout doit être fait pour éviter une rupture d’approvisionnement électrique. C’est pourquoi j’en appelle à la responsabilité de chacun et vous demande, autant que possible, de modérer votre consommation. [...] Plusieurs mesures exceptionnelles seront prises en ce sens : nous avons temporairement levé les restrictions qui pesaient sur la production des centrales nucléaires lorsque c’est possible sans préjudice pour notre sécurité. C’est en particulier le cas des centrales situées en bord de rivière où nous pouvons produire davantage. Dans ce même esprit, l’éclairage des enseignes commerciales ou à des fins publicitaires sera interdit dès demain et jusqu’à nouvel ordre. [...] Enfin, dès lundi, le gouvernement travaillera à la mise en place d’une “prime sobriété” qui sera proposée aux Français volontaires, en contrepartie d’une limitation de leur consommation lors des pics. »</p><p class="block">Le Président de la République aborde également les récentes émeutes qui ont eu lieu dans les commerces alimentaires : « Nous ne tiendrons que tous ensemble, et je compte sur vous pour ne céder à aucune panique, aucune peur, aucune facilité. Je compte sur vous, au fond, pour être une Nation, unie et à la hauteur de son histoire. [...] Le chaos et la division qui menacent ne peuvent perdurer. Dès demain, 10 000 réservistes seront mobilisés pour assister nos forces de l’ordre et garantir la paix civile. [...] Pour éviter que la loi du plus fort ne s’impose, des mesures de rationnement seront temporairement mises en place, le temps de reconstituer nos stocks de produits essentiels. »</p><p class="block">La réaction des oppositions ne se fait pas attendre. Jordan Bardella dénonce « l’amateurisme du président, qui après avoir fermé Fessenheim et détruit la filière nucléaire française lors de son premier quinquennat, a mis la France dans une situation de chaos ».</p><p class="block">Certaines voix écologistes déplorent l’impréparation du gouvernement, qu’elles jugent contraint de répondre en catastrophe à une situation qu’il n’a pas voulu anticiper : « la prime sobriété est un écran de fumée qui ne règlera rien à l’urgence des prochains jours, parce qu’elle ne pourra pas être appliquée immédiatement ; pourquoi la décider aujourd’hui, alors que chaque hiver, depuis au moins 5 ans, RTE alerte sur le risque de rupture du réseau ? On a déjà frôlé le pire l’hiver dernier, mais le gouvernement n’en a tiré aucun enseignement. Faute d’avoir su planifier, le gouvernement improvise, comme d’habitude. »</p></div></article><hr class="cut" data-delta=""><article class="entry entry--chronicle" id="j28" data-id="j28" data-kind="chronicle" data-temp="50" data-faille="1" data-date-fiction="2 Juillet 2026" data-qualifier=""><header class="entry__head"><span class="entry__date-fiction mono">2 Juillet 2026</span><span class="entry__temp-inline mono">50&nbsp;°C</span></header><div class="entry__body"><p class="block">[2.07.2026] “Celles et ceux qui pouvaient fuir l’ont déjà fait. Restent les tétanisés et les prisonniers, les inconscients et les fous. Les courageux, qu’ils nous inspirent. Devenons fourmis, terrons-nous pour mieux renaître demain.</p><p class="block">Organisons la solidarité, la débrouille, canalisons le chaos : Paris ne sombrera pas !” peut-on lire dans l’édito du Monde.</p><p class="block">Alors qu’il fait 49°C aujourd’hui et 50°C demain, la mobilisation est générale, malgré les corps et les esprits exténués. Le mot est passé : il faut se réfugier dans les sous-sols.</p><p class="block">Un reportage de <span class="handle">@franceinfo</span> met en avant des initiatives de solidarité : « De nombreuses associations et des citoyens tentent d’aider : distribution alimentaire depuis plusieurs jours, aide à l’aménagement de coins nuits dans des caves, regroupement de personnes âgées encore vivantes dans des lieux frais, garde d’enfants pour celles et ceux qui doivent travailler.”</p><figure class="plate" data-slot="metro-refuge" data-src="assets/illustrations/metro-refuge.webp" style="--aspect:16 / 9;"><div class="plate__frame"><img alt="Il faut se réfugier dans les sous-sols. 49°C dehors." decoding="async"><div class="plate__placeholder"><p class="plate__pending">Illustration à venir</p><p class="plate__subject">Un quai de métro transformé en refuge, silhouettes assises dans la pénombre fraîche.</p></div></div><figcaption class="plate__caption mono">Il faut se réfugier dans les sous-sols. 49°C dehors.</figcaption></figure><p class="block">Sur ordre de la Préfecture, d’anciennes stations de métro ont été transformées en lieu d’accueil et le métro est ouvert H24. Tous les agents de la RATP sont mobilisés pour cet accueil. Les catacombes, des parkings, des caves, d’anciens abris de la 2nde guerre mondiale sont transformés en lieux d’accueil.</p><p class="block">L’association Data4Good, qui réunit une communauté de bénévoles de la Tech, a mis en ligne une appli "Fraîcheur de vivre” où l’on peut répertorier et voir les places disponibles dans ces lieux refuges.</p><p class="block">« On essaie de mettre notre force de frappe au service du plus grand nombre. On se sent utiles, et c’est aussi une manière de tenir. Je suis née à Paris, il était hors de question de partir » commente Lou Welgryn, présidente de l’association.</p><p class="block">En surface, le street pooling s’est dangereusement multiplié. Casser les robinets des points d’eau des pompiers apporte certes un rafraîchissement immédiat, mais leur multiplication entraîne des coupures d’eau pour une partie de la population.</p><p class="block">Avec l’aide d’Eau de Paris, les services des pompiers, éreintés, interviennent le plus rapidement possible, au détriment de l’aide aux personnes fragiles. Sans le dire, tous les services d’urgence doivent choisir à qui donner une meilleure chance de vivre.</p><p class="block">Fluctuat Nec Mergitur.</p></div></article><hr class="cut" data-delta=""><article class="entry entry--interior" id="j29" data-id="j29" data-kind="interior" data-temp="" data-faille="1" data-date-fiction="2 Juillet 2026" data-qualifier="nuit"><div class="entry__inner"><header class="entry__head"><h2 class="entry__title">La nouvelle aube</h2><span class="entry__date-fiction mono">2 Juillet 2026 · nuit</span></header><figure class="plate" data-slot="nouvelle-aube" data-src="assets/illustrations/nouvelle-aube.webp" style="--aspect:4 / 3;"><div class="plate__frame"><img alt="De tous temps les hommes ont élu domicile dans la lumière." decoding="async"><div class="plate__placeholder"><p class="plate__pending">Illustration à venir</p><p class="plate__subject">Une rue parisienne à 4h du matin, vie nocturne inversée, café qui déborde sous les lampadaires.</p></div></div><figcaption class="plate__caption mono">De tous temps les hommes ont élu domicile dans la lumière.</figcaption></figure><div class="entry__body"><p class="block block--intrusion" data-rhythm="slab">« De tous temps les hommes... »</p><p class="block block--intrusion" data-rhythm="slab">Mais n’écrivez jamais ça ! Jamais jamais, quelle bêtise. Qu’est-ce qu’on en sait de ce qu’ils faisaient, et puis c’est qui les hommes, et c’est quoi « de tous temps », et comment peut-on affirmer que tout a toujours été linéaire, régulier, le même ?</p><p class="block block--intrusion" data-rhythm="slab">Regardez-vous, vous êtes bourrés d’hormones, vous avez un bouton sur le front un matin que vous n’aviez pas la veille et vous vous sentez étranger à la personne que vous étiez à la rentrée scolaire précédente - vous êtes en chantier, pour le dire poliment, et vous êtes la preuve qu’on est tous en chantier, tout le temps. C’est peut-être la seule chose qu’on pourrait graver dans le marbre quelque part, qu’on ne se ressemblera jamais vraiment, que rien ne restera le même. De tous temps les hommes, absurdité.</p><p class="block">Dans son souvenir, elle revoit son vieux professeur soupirer bruyamment, et elle sourit. Elle ne sait pas ce qu’il est devenu. Elle se demande - et elle a un peu honte et mal de se le demander, mais il fait si chaud - elle se demande s’il est encore en vie.</p><p class="block">S’il l’est, il faudrait qu’il reconnaisse, quand même, que de tous temps les hommes ont élu domicile dans la lumière. Face à la boulangerie, elle traverse.</p><p class="block">Plus pratiques, le jour, le disque solaire, pour manger, planter, cultiver, travailler, socialiser, aimer, produire, créer, enseigner. La nuit qui tombe sur les hommes ressemble à un signe assez évident pour tout arrêter. Suspendre le temps.</p><p class="block block--intrusion" data-rhythm="slab">Une tradition, s’il vous plaît.</p><p class="block">On aurait pu peut-être graver autre chose dans le marbre, qu’on ne se ressemblera jamais vraiment et que suivre le rythme du soleil est tellement naturel, que se désynchroniser fait presque mal à la poitrine.</p><p class="block">C’était drôle les premiers temps, d’acheter sa baguette à 4h du matin avant les premières lueurs, face au café qui déborde encore de monde ; c’était drôle de prévoir des verres au milieu de la nuit, de faire des dates à la lueur des lampadaires, de se balader sous le ciel noir, de faire ses courses après minuit comme si on avait réalisé l’étrange rêve de gosse de se cacher dans le supermarché et d’attendre qu’il ferme pour tout dévorer en cachette. Ça a été drôle, vraiment. Puis tout le monde a cessé de rire.</p><p class="block">Les gens ont fini par se concentrer sur les températures qui ne baissaient jamais, sur la sueur qui gorgeait leur peau, sur l’horreur d’un monde qui doit fuir le soleil pour ne pas le laisser le tuer. Elle rentre chez elle au moment où l’aube luit, au fond de l’horizon. Elle ferme la fenêtre, dépose le pain frais sur le comptoir de la cuisine, déplie son canapé-lit. Elle s’endort en pensant à un monde linéaire, régulier, qui resterait toujours le même et que les hommes de tous temps n’auraient pas trop saccagé.</p><p class="block">Ce qui suit n’a pas été publié</p></div></div></article><hr class="cut" data-delta=""><article class="entry entry--interior" id="j30" data-id="j30" data-kind="interior" data-temp="50" data-faille="1" data-date-fiction="3 Juillet 2026" data-qualifier=""><div class="entry__inner"><header class="entry__head"><span class="entry__date-fiction mono">3 Juillet 2026</span></header><figure class="plate" data-slot="coda-lea" data-src="assets/illustrations/coda-lea.webp" style="--aspect:3 / 4;"><div class="plate__frame"><img alt="« Dis papa, est-ce qu'on va devenir des fourmis ? »" decoding="async"><div class="plate__placeholder"><p class="plate__pending">Illustration à venir</p><p class="plate__subject">Le quai de métro Pont-Cardinet en contre-plongée, une petite fille et son père minuscules.</p></div></div><figcaption class="plate__caption mono">« Dis papa, est-ce qu'on va devenir des fourmis ? »</figcaption></figure><div class="entry__body"><figure class="block block--epigraph"><span class="block--epigraph__stamp mono">[30.06.2026]</span><blockquote class="block--epigraph__quote"> « Il n’y a plus rien, ni cri, ni roulement, ni rumeur lointaine ; ni le moindre contour discernable accusant quelques différences, quelque relief, entre les plans successifs de ce qui formait ici des maisons, des palais des avenues » (Robbe-Grillet, Topologie d'une cité fantôme).</blockquote></figure><p class="block">Il est 11h30 et la température vient d’atteindre les 50°C dans les rues de Paris, où plus personne n’ose s’aventurer depuis hier soir. Si Léa était à la surface, elle pourrait percevoir les rues fantômes jonchées d’oiseaux morts, les rideaux fermés, et les pneus fondus qui se confondent avec le bitume. Mais comme beaucoup de ceux qui sont restés, Léa est réfugiée sous terre, où une petite société s’est formée. Le feu des Enfers est désormais là-haut, dans cette ville qui n’est plus que l’ombre d’elle-même.</p><p class="block">Il est 11h30 et Léa, assise avec son papa sur le quai du métro Pont-Cardinet, observe la petite vie grouillante qui germe autour d’elle : « dis papa, est-ce qu’on va devenir des fourmis ? »</p></div></div></article><hr class="cut" data-delta=""><article class="entry entry--stub" id="j31" data-id="j31" data-kind="stub" data-temp="" data-faille="1" data-date-fiction="4 Juillet 2026" data-qualifier=""><div class="entry__inner"><header class="entry__head"><h2 class="entry__title">Brève sur l’occupation de l’appart</h2><span class="entry__date-fiction mono">4 Juillet 2026</span></header><figure class="plate" data-slot="stub-void" data-src="assets/illustrations/stub-void.webp" style="--aspect:4 / 3;"><div class="plate__frame"><img alt="Brève sur l'occupation de l'appart — inachevé." decoding="async"><div class="plate__placeholder"><p class="plate__pending">Illustration à venir</p><p class="plate__subject">Un appartement vide aux volets clos baignant dans une pénombre chaude, surface inachevée.</p></div></div><figcaption class="plate__caption mono">Brève sur l'occupation de l'appart — inachevé.</figcaption></figure><p class="stub__note mono">Ébauche — laissée inachevée.<br>Ce qui suit n'a jamais été publié — les auteurs, épuisés, se sont arrêtés ici.</p><div class="stub__void" aria-hidden="true"></div></div></article><hr class="cut" data-delta=""><article class="entry entry--chronicle" id="j32" data-id="j32" data-kind="chronicle" data-temp="50" data-faille="0" data-date-fiction="5 Juillet 2026" data-qualifier=""><header class="entry__head"><span class="entry__date-fiction mono">5 Juillet 2026</span><span class="entry__temp-inline mono">50&nbsp;°C</span></header><div class="entry__body"><p class="block"><span class="timestamp">[05.07.2026]</span> Plutôt que de s’enterrer, plusieurs dizaines de milliers de personnes ont passé le week-end dans le bois de Vincennes où il n’a fait “que” 40°C quand il en faisait 50°C à Châtelet.</p><p class="block">Les pompiers avaient bien prévenu de l'extrême risque d’incendie dans un parc transformé en camping sauvage géant. Ils avaient vu juste : il a suffit d’un seul mégot négligemment jeté pour devoir évacuer tout le parc. L’incendie sera maitrisé au prix de la vie de 4 pompiers, morts non pas du feu mais d’hyperthermie, en combattants du climat.</p><p class="block">La rumeur dira que le mégot a été jeté intentionnellement. Some people just want to see the world burn.</p><figure class="plate" data-slot="vincennes" data-src="assets/illustrations/vincennes.webp" style="--aspect:16 / 9;"><div class="plate__frame"><img alt="Un seul mégot. Some people just want to see the world burn." decoding="async"><div class="plate__placeholder"><p class="plate__pending">Illustration à venir</p><p class="plate__subject">Le bois de Vincennes en camping sauvage géant qui prend feu, vert vite mangé par la braise.</p></div></div><figcaption class="plate__caption mono">Un seul mégot. Some people just want to see the world burn.</figcaption></figure><p class="block">Le président parle à la nation, personne n’écoute. Les autorités locales diffusent les seules informations importantes : où trouver du frais, de l’eau et de la nourriture, quelle température fera-t-il demain. Le reste n’est qu’agitation.</p><p class="block">La consommation d’électricité a chuté du fait de l’arrêt généralisé du travail. Il semblerait que la population ait bien suivi les recommandations : arrêt des escalators, des écrans, des fours, des plaques, de l’eau chaude, de certains éclairages.</p></div></article></div></main><footer class="colophon" id="colophon"><div class="colophon__inner"><p class="colophon__surface">Retour à la surface</p><h2>Préface</h2><p>Le texte que vous vous apprêtez à lire est une fiction écrite à 3 entre Février et Juillet 2022, publiée au jour le jour sur le profil Twitter et Linkedin « Paris à 50°C » entre Mai et Juillet 2022.</p><p>Ce travail est une fiction de crise, qui imagine ce qui pourrait se passer si un dôme de chaleur de 3-4 semaines avec un pic à 50°C s’installait au-dessus de Paris dès Juin 2026.</p><p>Tous les éléments techniques constitutifs de ces histoires sont réalistes et documentés, et sont basés sur les connaissances antérieures des auteurs, des rapports et des articles de presse, et un travail approfondi d’interviews dans le 13eme arrondissement.</p><p>Ce dernier travail de terrain a permis de faire émerger des effets de seuils (que se passe-t-il de nouveau quand une canicule dépasse telle température ou se positionne en Juin…) et des effets dominos (que se passe-t-il pour l’école si le réseau de transport ne fonctionne plus ?), et a fait l’objet d’un rapport classique. Nous avons voulu le rendre plus accessible en racontant également une histoire.</p><p>En phase de préparation (Février – Mai 2022), nous avons imaginé un profil de canicule (tel jour, telle température) et les effets sur une série d’acteurs de différentes natures (hôpitaux, EPHAD, police, population, presse, réseaux sociaux…). En parallèle, nous avons imaginé la vie de personnages, pour en explorer l’intériorité. Il y a donc un double mode de narration dans ce qui suit.</p><p>La phase d’écriture était aussi celle de la publication car nous travaillions les textes jusqu’à la dernière minute. Nous avons été pris de court par la canicule précoce de Juin 2022, sans pour autant être surpris : tout ce qui est écrit est extrêmement prévisible. Par contre, nous n’avions pas envisagé l’impact émotionnel d’écrire au jour le jour pendant une canicule qui semblait s’étendre jusqu’en Juillet. De fatigue, nous n’avons pas achevé nos travaux. Nous envisagions une annulation du défilé du 14 Juillet, faute d’êtres humains voulant encore jouer à ce jeu-là en plein cagnard.</p><p>Ce travail a tout de même inspiré l’exercice de gestion de crise organisé par la Ville de Paris en Octobre 2023 et a été un élément de préparation de la mission transpartisane Paris à 50°C, présidée par Alexandre Florentin (Octobre 2022 - Avril 2023).</p><p>Les personnes citées existent et n’ont pas été consultées sur les rôles qui leur sont donnés.</p><p>N’hésitez pas à vous inspirer de ce travail comme bon vous semble (avec citation) et travaillons ensemble à d’autres projets racontant comment nous allons éviter les situations décrites ici.</p><h2>Les auteurs</h2><p class="meta-line">Agathe Freydefont – autrice, metteuse en scène, comédienne Florian Zito – consultant climat, ancien professeur de philosophie</p><h2>Sous la direction de</h2><p class="meta-line">Sous la direction d’Alexandre Florentin – ingénieur en sécurité, ancien conseiller de Paris et président de la mission transpartisane Paris à 50°C.</p><h2>Note sur le calendrier</h2><p class="meta-line">Calendrier réel de 2026. Les titres sont au format « date de publication / date dans la fiction »</p><h2>Contact</h2><p class="meta-line">Contact presse, méthodologie et politique : contact@alexandreflorentin.fr</p><p class="colophon__devise">Fluctuat Nec Mergitur</p></div></footer><button class="jump-toggle mono" type="button" aria-expanded="false" aria-controls="jump"><span class="jump-toggle__bars" aria-hidden="true"></span>Les jours</button><nav class="jump" id="jump" aria-label="Aller à un jour" hidden><p class="jump__head mono">Aller à un jour</p><div class="jump__list"><a class="jump__row" href="#j00" data-kind="chronicle"><span class="jump__date mono">LUNDI 1er Juin 2026</span><span class="jump__temp mono"></span></a><a class="jump__row" href="#j01" data-kind="chronicle"><span class="jump__date mono">MARDI 2 Juin 2026</span><span class="jump__temp mono">48°C</span></a><a class="jump__row" href="#j02" data-kind="chronicle"><span class="jump__date mono">3 Juin 2026</span><span class="jump__temp mono"></span></a><a class="jump__row" href="#j03" data-kind="chronicle"><span class="jump__date mono">4 Juin 2026</span><span class="jump__temp mono"></span></a><a class="jump__row" href="#j04" data-kind="chronicle"><span class="jump__date mono">5 Juin 2026</span><span class="jump__temp mono"></span></a><a class="jump__row" href="#j05" data-kind="chronicle"><span class="jump__date mono">7 Juin 2026</span><span class="jump__temp mono"></span></a><a class="jump__row" href="#j06" data-kind="chronicle"><span class="jump__date mono">8 Juin 2026</span><span class="jump__temp mono"></span></a><a class="jump__row" href="#j07" data-kind="chronicle"><span class="jump__date mono">9 Juin 2026</span><span class="jump__temp mono"></span></a><a class="jump__row" href="#j08" data-kind="chronicle"><span class="jump__date mono">12 Juin 2026</span><span class="jump__temp mono">45°C</span></a><a class="jump__row" href="#j09" data-kind="chronicle"><span class="jump__date mono">13 Juin 2026</span><span class="jump__temp mono"></span></a><a class="jump__row" href="#j10" data-kind="interior"><span class="jump__date mono">14 Juin 2026</span><span class="jump__temp mono"></span><span class="jump__title">Le reste</span></a><a class="jump__row" href="#j11" data-kind="chronicle"><span class="jump__date mono">15 Juin 2026</span><span class="jump__temp mono">43°C</span></a><a class="jump__row" href="#j12" data-kind="chronicle"><span class="jump__date mono">16 Juin 2026</span><span class="jump__temp mono">40°C</span></a><a class="jump__row" href="#j13" data-kind="interior"><span class="jump__date mono">17 Juin 2026</span><span class="jump__temp mono"></span><span class="jump__title">Petit personnage</span></a><a class="jump__row" href="#j14" data-kind="chronicle"><span class="jump__date mono">18 Juin 2026</span><span class="jump__temp mono">42°C</span></a><a class="jump__row" href="#j15" data-kind="chronicle"><span class="jump__date mono">19 Juin 2026</span><span class="jump__temp mono"></span></a><a class="jump__row" href="#j16" data-kind="chronicle"><span class="jump__date mono">20 juin 2026</span><span class="jump__temp mono"></span></a><a class="jump__row" href="#j17" data-kind="chronicle"><span class="jump__date mono">22 Juin 2026</span><span class="jump__temp mono">38°C</span></a><a class="jump__row" href="#j18" data-kind="chronicle"><span class="jump__date mono">23 Juin 2021</span><span class="jump__temp mono">50°C</span></a><a class="jump__row" href="#j19" data-kind="interior"><span class="jump__date mono">24 juin 2026</span><span class="jump__temp mono"></span></a><a class="jump__row" href="#j20" data-kind="chronicle"><span class="jump__date mono">25 Juin 2026</span><span class="jump__temp mono"></span></a><a class="jump__row" href="#j21" data-kind="chronicle"><span class="jump__date mono">26 Juin 2026</span><span class="jump__temp mono"></span></a><a class="jump__row" href="#j22" data-kind="chronicle"><span class="jump__date mono">27 Juin 2026</span><span class="jump__temp mono">45°C</span></a><a class="jump__row" href="#j23" data-kind="interior"><span class="jump__date mono">28 Juin 2026</span><span class="jump__temp mono"></span><span class="jump__title">Le baron</span></a><a class="jump__row" href="#j24" data-kind="chronicle"><span class="jump__date mono">29 Juin 2026</span><span class="jump__temp mono"></span></a><a class="jump__row" href="#j25" data-kind="chronicle"><span class="jump__date mono">30 Juin 2026</span><span class="jump__temp mono">50°C</span></a><a class="jump__row" href="#j26" data-kind="interior"><span class="jump__date mono">1er Juillet 2026 · Matin</span><span class="jump__temp mono"></span><span class="jump__title">Brève — Yum yum yum</span></a><a class="jump__row" href="#j27" data-kind="chronicle"><span class="jump__date mono">1er Juillet 2026 · Soir</span><span class="jump__temp mono"></span></a><a class="jump__row" href="#j28" data-kind="chronicle"><span class="jump__date mono">2 Juillet 2026</span><span class="jump__temp mono">50°C</span></a><a class="jump__row" href="#j29" data-kind="interior"><span class="jump__date mono">2 Juillet 2026 · nuit</span><span class="jump__temp mono"></span><span class="jump__title">La nouvelle aube</span></a><a class="jump__row" href="#j30" data-kind="interior"><span class="jump__date mono">3 Juillet 2026</span><span class="jump__temp mono">50°C</span></a><a class="jump__row" href="#j31" data-kind="stub"><span class="jump__date mono">4 Juillet 2026</span><span class="jump__temp mono"></span><span class="jump__title">Brève sur l’occupation de l’appart</span></a><a class="jump__row" href="#j32" data-kind="chronicle"><span class="jump__date mono">5 Juillet 2026</span><span class="jump__temp mono">50°C</span></a></div></nav><script>
+/* ====================================================================
+   PARIS À 50°C — app.js
+   L'élément-signature : le Dôme (ciel-plafond thermique) + la Faille
+   (filet-mercure). Tout est lié au scroll, rien ne clignote.
+   ==================================================================== */
+(function () {
+  "use strict";
+
+  var root = document.documentElement;
+  var body = document.body;
+  var sky = document.querySelector(".sky");
+  var skyDate = document.querySelector(".sky__date");
+  var skyTemp = document.querySelector(".sky__temp");
+  var mercuryFill = document.querySelector(".mercury__fill");
+  var mercuryMeniscus = document.querySelector(".mercury__meniscus");
+  var entries = Array.prototype.slice.call(document.querySelectorAll(".entry"));
+  var bookMain = document.querySelector(".book");
+
+  // Le thermomètre-nav (gouttière) n'apparaît qu'une fois dans le livre.
+  function updateReading() {
+    if (!bookMain) return;
+    var top = bookMain.getBoundingClientRect().top;
+    body.classList.toggle("reading", top < window.innerHeight * 0.55);
+  }
+
+  // Scroll-snap actif UNIQUEMENT dans l'ouverture (chaque acte = diapositive) ;
+  // au-delà, on rend la main au défilement normal du livre.
+  var overtureEl = document.querySelector(".overture");
+  var navLock = false;   // verrou pendant un saut programmé (sinon le snap ramène)
+  // Le snap doit être RÉELLEMENT coupé (inline) avant un scrollIntoView, sinon
+  // « y mandatory » annule le saut et on reste collé à la diapositive courante.
+  function setSnap(on) {
+    if (on) { root.classList.add("snap"); root.style.scrollSnapType = ""; }
+    else { root.classList.remove("snap"); root.style.scrollSnapType = "none"; }
+  }
+  function updateSnap() {
+    if (!overtureEl || navLock) return;
+    setSnap(overtureEl.getBoundingClientRect().bottom > window.innerHeight * 0.55);
+  }
+
+  // Échelle thermique : 38 → 50.
+  var TMIN = 38, TMAX = 50;
+
+  // Arrêts de teinte du ciel (tempC → hex), interpolés.
+  var STOPS = [
+    { t: 38, c: [0xA9, 0xC2, 0xD6] }, // bleu d'étain
+    { t: 43, c: [0xD9, 0x9A, 0x3A] }, // or-bitume
+    { t: 47, c: [0xC4, 0x34, 0x1E] }, // vermillon
+    { t: 50, c: [0xFB, 0xFA, 0xF4] }  // blanc incandescent
+  ];
+  var BITUME = [0x0B, 0x0D, 0x14];
+
+  function lerp(a, b, p) { return a + (b - a) * p; }
+  function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+
+  function tempToRGB(t) {
+    t = clamp(t, TMIN, TMAX);
+    for (var i = 0; i < STOPS.length - 1; i++) {
+      var a = STOPS[i], b = STOPS[i + 1];
+      if (t >= a.t && t <= b.t) {
+        var p = (t - a.t) / (b.t - a.t);
+        return [
+          Math.round(lerp(a.c[0], b.c[0], p)),
+          Math.round(lerp(a.c[1], b.c[1], p)),
+          Math.round(lerp(a.c[2], b.c[2], p))
+        ];
+      }
+    }
+    return STOPS[STOPS.length - 1].c.slice();
+  }
+
+  function rgbStr(c) { return "rgb(" + c[0] + "," + c[1] + "," + c[2] + ")"; }
+
+  // luminance relative → choisir encre lisible (AA) sur le ciel
+  function luminance(c) {
+    var s = c.map(function (v) {
+      v /= 255;
+      return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+    });
+    return 0.2126 * s[0] + 0.7152 * s[1] + 0.0722 * s[2];
+  }
+
+  function tempToHeight(t) {
+    return clamp((t - TMIN) / (TMAX - TMIN), 0, 1) * 100;
+  }
+
+  // Niveau de "chaleur" pour la haze (warm/hot/peak)
+  function heatLevel(t) {
+    if (t >= 50) return "peak";
+    if (t >= 47) return "hot";
+    if (t >= 45) return "warm";
+    return "";
+  }
+
+  // ---- État courant ----
+  var lastTemp = TMIN;       // la chaleur est cumulative en mémoire
+  var maxTemp = TMIN;        // le mercure ne redescend jamais
+  var reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var heatCapped = false;    // « atténuer la chaleur »
+  var CAP = 42;
+
+  function applyState(entry) {
+    var kind = entry.getAttribute("data-kind");
+    var rawTemp = entry.getAttribute("data-temp");
+    var isFaille = entry.getAttribute("data-faille") === "1";
+    var isStub = kind === "stub";
+
+    // température affichée / mémorisée
+    var t = lastTemp;
+    var hasOwnTemp = rawTemp !== null && rawTemp !== "" && rawTemp !== "null";
+    if (hasOwnTemp) { t = parseInt(rawTemp, 10); lastTemp = t; }
+
+    // mercure : ne redescend jamais
+    if (t > maxTemp) maxTemp = t;
+
+    // --- Ciel ---
+    var displayT = heatCapped ? Math.min(t, CAP) : t;
+    body.setAttribute("data-faille", isFaille ? "1" : "0");
+    body.setAttribute("data-stub", isStub ? "1" : "0");
+
+    // --temp : SOURCE UNIQUE réellement écrite, pilotée par le scroll.
+    // Le ciel, le mercure et la haze en dérivent (cf. CSS). data-heat ne sert
+    // plus qu'aux paliers d'animation (durée), pas à l'intensité — celle-ci
+    // glisse en continu via --temp, alignée sur la teinte interpolée.
+    root.style.setProperty("--temp", String(displayT));
+
+    if (!isFaille && !isStub) {
+      var c = tempToRGB(displayT);
+      root.style.setProperty("--sky-color", rgbStr(c));
+      var ink = luminance(c) > 0.5 ? "#16110D" : "#FBFAF4";
+      root.style.setProperty("--sky-ink", ink);
+      body.setAttribute("data-heat", heatCapped ? "" : heatLevel(displayT));
+    } else {
+      // faille / stub : bitume, géré par CSS via data-faille/data-stub
+      body.setAttribute("data-heat", "");
+    }
+
+    // --- Texte du ciel ---
+    var dateText = entry.getAttribute("data-date-fiction") || "";
+    var qualifier = entry.getAttribute("data-qualifier");
+    skyDate.innerHTML = "";
+    var dspan = document.createElement("span");
+    dspan.textContent = dateText;
+    skyDate.appendChild(dspan);
+    if (qualifier) {
+      var q = document.createElement("span");
+      q.className = "sky__qualifier";
+      q.textContent = " · " + qualifier;
+      skyDate.appendChild(q);
+    }
+
+    // °C héros — seulement si l'entrée a son propre tempC (sinon hérite sans chiffre)
+    if (hasOwnTemp && !isStub) {
+      var prev = skyTemp.getAttribute("data-val");
+      var nv = String(t);
+      if (prev !== nv) {
+        skyTemp.innerHTML = nv + '<span class="unit">°C</span>';
+        skyTemp.setAttribute("data-val", nv);
+        if (!reducedMotion && !body.dataset.reduced) {
+          skyTemp.style.opacity = "0";
+          skyTemp.style.transform = "translateY(2px)";
+          requestAnimationFrame(function () {
+            requestAnimationFrame(function () {
+              skyTemp.style.opacity = "1";
+              skyTemp.style.transform = "translateY(0)";
+            });
+          });
+        }
+      }
+    } else if (isStub) {
+      // ébauche : le ciel garde le dernier chiffre, figé (déjà à l'écran)
+    } else {
+      // entrée sans tempC : pas de chiffre héros, on vide
+      skyTemp.innerHTML = "";
+      skyTemp.removeAttribute("data-val");
+    }
+
+    updateMercury();
+  }
+
+  function updateMercury() {
+    var h = tempToHeight(maxTemp);
+    root.style.setProperty("--mercury-fill", h + "%");
+    var c = tempToRGB(maxTemp);
+    root.style.setProperty("--mercury-hue", rgbStr(c));
+  }
+
+  // ====================================================================
+  // IntersectionObserver : l'entrée la plus centrée pilote l'état.
+  // ====================================================================
+  // Thermomètre-nav : index id -> tick, pour allumer le jour courant.
+  var railDays = {};
+  document.querySelectorAll(".rail__day").forEach(function (a) {
+    var h = a.getAttribute("href");
+    if (h && h.charAt(0) === "#") railDays[h.slice(1)] = a;
+  });
+  var currentRail = null;
+  function markRail(id) {
+    var el = railDays[id];
+    if (el === currentRail) return;
+    if (currentRail) currentRail.classList.remove("is-current");
+    if (el) { el.classList.add("is-current"); el.setAttribute("aria-current", "true"); }
+    if (currentRail) currentRail.removeAttribute("aria-current");
+    currentRail = el || null;
+  }
+
+  var current = null;
+  function pickCentered() {
+    var mid = window.innerHeight / 2;
+    var best = null, bestDist = Infinity;
+    for (var i = 0; i < entries.length; i++) {
+      var r = entries[i].getBoundingClientRect();
+      if (r.bottom < 0 || r.top > window.innerHeight) continue;
+      var center = r.top + r.height / 2;
+      var d = Math.abs(center - mid);
+      // privilégier une entrée qui couvre le milieu
+      if (r.top <= mid && r.bottom >= mid) d = 0;
+      if (d < bestDist) { bestDist = d; best = entries[i]; }
+    }
+    if (best && best !== current) {
+      current = best;
+      applyState(best);
+      markRail(best.id);
+    }
+  }
+
+  var ticking = false;
+  function onScroll() {
+    if (ticking) return;
+    ticking = true;
+    requestAnimationFrame(function () { pickCentered(); sweepPlates(); updateReading(); updateSnap(); ticking = false; });
+  }
+
+  // ====================================================================
+  // Voix intrusive : « gicle » à l'entrée du viewport.
+  // ====================================================================
+  function initIntrusions() {
+    var intr = document.querySelectorAll(".block--intrusion");
+    if (!("IntersectionObserver" in window)) {
+      intr.forEach(function (el) { el.classList.add("is-in"); });
+      return;
+    }
+    var io = new IntersectionObserver(function (es) {
+      es.forEach(function (e) {
+        if (e.isIntersecting) {
+          e.target.classList.add("is-in");
+          io.unobserve(e.target);
+        }
+      });
+    }, { threshold: 0.2, rootMargin: "0px 0px -10% 0px" });
+    intr.forEach(function (el) { io.observe(el); });
+
+    // crowd : montée progressive en graisse/taille à chaque reprise
+    var crowds = {};
+    document.querySelectorAll('.block--intrusion[data-rhythm="crowd"]').forEach(function (el) {
+      var grp = el.closest(".entry").getAttribute("data-id");
+      crowds[grp] = (crowds[grp] || 0) + 1;
+      if (crowds[grp] > 2) el.classList.add("is-rising");
+    });
+  }
+
+  // ====================================================================
+  // Planches : volet météo qui s'abaisse (clip-path) à la révélation.
+  // ====================================================================
+  var platesPending = [];
+  function revealPlate(p) {
+    p.classList.remove("reveal-ready");
+    p.classList.add("is-in");
+  }
+  function initPlates() {
+    var plates = Array.prototype.slice.call(document.querySelectorAll(".plate:not(.plate--cover)"));
+    if (reducedMotion || body.dataset.reduced || !("IntersectionObserver" in window)) {
+      return; // pas de clip : les planches sont visibles d'emblée
+    }
+    plates.forEach(function (p) { p.classList.add("reveal-ready"); });
+    platesPending = plates.slice();
+    var io = new IntersectionObserver(function (es) {
+      es.forEach(function (e) {
+        if (e.isIntersecting) {
+          revealPlate(e.target);
+          io.unobserve(e.target);
+          var i = platesPending.indexOf(e.target);
+          if (i >= 0) platesPending.splice(i, 1);
+        }
+      });
+    }, { threshold: 0.15 });
+    plates.forEach(function (p) { io.observe(p); });
+  }
+  // Filet de sécurité : au scroll, toute planche dont le haut a franchi 85% du
+  // viewport est révélée, même si l'observer l'a manquée (sauts, throttling).
+  function sweepPlates() {
+    if (!platesPending.length) return;
+    var limit = window.innerHeight * 0.85;
+    for (var i = platesPending.length - 1; i >= 0; i--) {
+      var r = platesPending[i].getBoundingClientRect();
+      if (r.top < limit) {
+        revealPlate(platesPending[i]);
+        platesPending.splice(i, 1);
+      }
+    }
+  }
+
+  // ====================================================================
+  // Auto-affichage des illustrations si le fichier existe.
+  // ====================================================================
+  function initIllustrations() {
+    var plates = Array.prototype.slice.call(document.querySelectorAll(".plate[data-src]"));
+    function load(plate) {
+      if (plate.dataset.loaded) return;
+      plate.dataset.loaded = "1";
+      var src = plate.getAttribute("data-src");
+      var img = plate.querySelector("img");
+      if (!img) return;
+      img.onload = function () { plate.classList.add("has-img"); };
+      img.onerror = function () { /* on garde le placeholder élégant */ };
+      img.decoding = "async";
+      img.src = src;
+    }
+    // La couverture (au-dessus de la ligne de flottaison) charge tout de suite.
+    plates.forEach(function (p) { if (p.classList.contains("plate--cover")) load(p); });
+    var rest = plates.filter(function (p) { return !p.classList.contains("plate--cover"); });
+    if (!("IntersectionObserver" in window)) { rest.forEach(load); return; }
+    // Les autres : chargées à l'approche (préchargement 800px avant l'entrée).
+    var io = new IntersectionObserver(function (es) {
+      es.forEach(function (e) {
+        if (e.isIntersecting) { load(e.target); io.unobserve(e.target); }
+      });
+    }, { rootMargin: "800px 0px" });
+    rest.forEach(function (p) { io.observe(p); });
+  }
+
+  // ====================================================================
+  // Navigation persistante : panneau « Les jours » (saut entre dates).
+  // ====================================================================
+  function initJump() {
+    var toggle = document.querySelector(".jump-toggle");
+    var panel = document.getElementById("jump");
+    if (!toggle || !panel) return;
+    function open() { panel.hidden = false; toggle.setAttribute("aria-expanded", "true"); }
+    function close() { panel.hidden = true; toggle.setAttribute("aria-expanded", "false"); }
+    toggle.addEventListener("click", function (ev) {
+      ev.stopPropagation();
+      if (panel.hidden) open(); else close();
+    });
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape" && !panel.hidden) { close(); toggle.focus(); }
+    });
+    document.addEventListener("click", function (e) {
+      if (panel.hidden) return;
+      if (!panel.contains(e.target) && !toggle.contains(e.target)) close();
+    });
+    panel.querySelectorAll(".jump__row").forEach(function (a) {
+      a.addEventListener("click", function () { close(); });
+    });
+  }
+
+  // ---- Smooth-scroll des liens internes (sommaire, saut, rail, et surtout
+  //      « Descendre dans la canicule » + « défiler » qui doivent franchir le
+  //      scroll-snap de l'ouverture sans être ramenés en arrière). ----
+  function initSommaire() {
+    document.querySelectorAll(
+      '.sommaire__link, .jump__row, .rail__day, .overture__enter, .cover__cue'
+    ).forEach(function (a) {
+      a.addEventListener("click", function (ev) {
+        var id = a.getAttribute("href");
+        if (id && id.charAt(0) === "#") {
+          var tgt = document.querySelector(id);
+          if (tgt) {
+            ev.preventDefault();
+            // On coupe vraiment le snap (inline) AVANT de défiler, puis on saute
+            // à la frame suivante pour que le style soit pris en compte. Le verrou
+            // est levé à la FIN du défilement (scrollend), pas après un délai fixe :
+            // sinon, sur un long saut, le snap mandatory se réactive en plein vol
+            // et ramène à la diapositive de départ.
+            navLock = true;
+            setSnap(false);
+            var release = function () {
+              navLock = false;
+              window.removeEventListener("scrollend", release);
+              clearTimeout(fallback);
+              updateSnap();
+            };
+            var fallback = setTimeout(release, 2200);
+            window.addEventListener("scrollend", release);
+            requestAnimationFrame(function () {
+              tgt.scrollIntoView({ behavior: reducedMotion ? "auto" : "smooth", block: "start" });
+              tgt.setAttribute("tabindex", "-1");
+              tgt.focus({ preventScroll: true });
+            });
+          }
+        }
+      });
+    });
+  }
+
+  // Recalcule l'entrée centrée en forçant la réévaluation (current=null) :
+  // utile après un reflow (polices, resize) qui a déplacé les entrées.
+  function recompute() {
+    current = null;
+    pickCentered();
+    sweepPlates();
+    updateReading();
+    updateSnap();
+  }
+
+  // ====================================================================
+  // Ouverture : date du jour en direct + révélation des actes.
+  // ====================================================================
+  function initOverture() {
+    var now = document.querySelector("[data-now]");
+    if (now) {
+      var months = ["janvier", "février", "mars", "avril", "mai", "juin",
+        "juillet", "août", "septembre", "octobre", "novembre", "décembre"];
+      var d = new Date();
+      now.textContent = d.getDate() + " " + months[d.getMonth()] + " " + d.getFullYear();
+    }
+    var acts = Array.prototype.slice.call(document.querySelectorAll(".overture__act"));
+    if (reducedMotion || body.dataset.reduced || !("IntersectionObserver" in window)) {
+      acts.forEach(function (a) { a.classList.add("is-in"); });
+      return;
+    }
+    var io = new IntersectionObserver(function (es) {
+      es.forEach(function (e) {
+        if (e.isIntersecting) { e.target.classList.add("is-in"); io.unobserve(e.target); }
+      });
+    }, { threshold: 0.32 });
+    acts.forEach(function (a) { io.observe(a); });
+  }
+
+  // ====================================================================
+  // Couverture : l'œil de date apparaît, puis « Paris à 50°C » s'écrit à la
+  // machine, puis le chapô se révèle. Sans JS / motion réduite : tout est là.
+  // ====================================================================
+  function initCover() {
+    var cover = document.querySelector(".cover");
+    if (!cover) return;
+    var eyebrow = cover.querySelector(".cover__eyebrow");
+    var title = cover.querySelector(".cover__title");
+    var veil = cover.querySelector(".cover__veil");        // voile bleu nuit (contraste)
+    var lead = cover.querySelector(".cover__sub-lead");    // la prémisse, en fondu
+    var ghost = cover.querySelector(".cover__sub-ghost");  // réserve la hauteur exacte
+    var ink = cover.querySelector(".cover__sub-ink");      // l'avertissement, tapé
+    var full = ghost ? ghost.textContent : "";
+    if (reducedMotion || body.dataset.reduced) return;    // affichage direct
+
+    // état initial : tout masqué en fondu ; le fantôme garde sa place (pas de saut).
+    if (eyebrow) { eyebrow.style.opacity = "0"; eyebrow.style.transition = "opacity .9s ease"; }
+    if (title) { title.style.opacity = "0"; title.style.transition = "opacity 1.1s ease"; }
+    if (lead) { lead.style.opacity = "0"; lead.style.transition = "opacity 1s ease"; }
+    if (ghost) ghost.style.opacity = "0";
+    if (veil) veil.style.opacity = "0";
+
+    // 1) « Le ciel ce jour-là… » apparaît, et le voile bleu monte (contraste)
+    setTimeout(function () {
+      if (eyebrow) eyebrow.style.opacity = "1";
+      if (veil) veil.style.opacity = ".58";
+    }, 250);
+
+    // 2) « Paris à 50°C » apparaît en fondu, au centre
+    setTimeout(function () { if (title) title.style.opacity = "1"; }, 1600);
+
+    // 3) la prémisse (En 2022…) apparaît en fondu
+    setTimeout(function () { if (lead) lead.style.opacity = "1"; }, 2800);
+
+    // 4) l'avertissement se tape, dans l'espace déjà réservé (aucun saut)
+    if (ink) {
+      var i = 0;
+      function type() {
+        ink.textContent = full.slice(0, i);
+        if (i < full.length) { i++; setTimeout(type, 40); }
+      }
+      setTimeout(type, 3800);
+    }
+  }
+
+  // ---- Init ----
+  function init() {
+    if (entries.length) { applyState(entries[0]); current = entries[0]; }
+    pickCentered();
+    updateSnap();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onScroll, { passive: true });
+
+    // Le layout bouge quand Fraunces/Spectral arrivent : on recalcule l'état
+    // une fois les polices prêtes, sinon le ciel peut rester figé sur j00.
+    if (document.fonts && document.fonts.ready) {
+      document.fonts.ready.then(recompute).catch(function () {});
+    }
+    // Filet : au 'load' (images/polices), et à chaque resize réel du livre.
+    window.addEventListener("load", recompute);
+    var bookEl = document.querySelector(".book");
+    if (bookEl && "ResizeObserver" in window) {
+      var ro = new ResizeObserver(function () { recompute(); });
+      ro.observe(bookEl);
+    }
+
+    initCover();
+    initOverture();
+    initIntrusions();
+    initPlates();
+    initIllustrations();
+    initJump();
+    initSommaire();
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", init);
+  } else { init(); }
+})();
+
+</script><script defer src="/_vercel/insights/script.js"></script></body>
+</html>
